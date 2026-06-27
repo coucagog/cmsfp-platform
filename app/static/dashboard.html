@@ -352,6 +352,7 @@ async function login() {
     }
     const data = await res.json();
     TOKEN = data.access_token;
+    localStorage.setItem("access_token", TOKEN);
     document.getElementById("loginOverlay").classList.add("hidden");
     document.getElementById("sessionPill").textContent = "Connecté : " + u;
     document.getElementById("sessionPill").className = "pill ok";
@@ -365,6 +366,7 @@ async function login() {
 
 function logout() {
   TOKEN = null;
+  localStorage.removeItem("access_token");
   document.getElementById("loginOverlay").classList.remove("hidden");
   document.getElementById("sessionPill").textContent = "Non connecté";
   document.getElementById("sessionPill").className = "pill";
@@ -376,6 +378,21 @@ function logout() {
 document.getElementById("password").addEventListener("keydown", e => {
   if (e.key === "Enter") login();
 });
+
+/* ------------------------------------------------------------------ */
+/*  Restauration de session au chargement (token persisté)            */
+/* ------------------------------------------------------------------ */
+(function restoreSession() {
+  const saved = localStorage.getItem("access_token");
+  if (!saved) return;
+  TOKEN = saved;
+  document.getElementById("loginOverlay").classList.add("hidden");
+  document.getElementById("sessionPill").textContent = "Connecté";
+  document.getElementById("sessionPill").className = "pill ok";
+  document.getElementById("refreshBtn").disabled = false;
+  document.getElementById("logoutBtn").style.display = "inline-block";
+  loadAll();
+})();
 
 /* ------------------------------------------------------------------ */
 /*  Helper fetch authentifié                                          */

@@ -215,3 +215,9 @@ async def health():
 async def dashboard_page():
     """Sert la page HTML du tableau de bord (auth gérée côté JS via JWT)."""
     return FileResponse(str(STATIC_DIR / "dashboard.html"))
+
+
+@app.get("/fiche-patient", include_in_schema=False)
+async def fiche_patient_page():
+    """Sert la page HTML de consultation / édition de fiche patient."""
+    return FileResponse(str(STATIC_DIR / "fiche-patient.html"))
