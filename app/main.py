@@ -223,6 +223,18 @@ async def fiche_patient_page():
     return FileResponse(str(STATIC_DIR / "fiche-patient.html"))
 
 
+@app.get("/nouvelle-consultation", include_in_schema=False)
+async def nouvelle_consultation_page():
+    """
+    Sert la page HTML de l'assistant « Nouvelle consultation ».
+
+    Workflow complet en 4 étapes : recherche/création du patient → choix du
+    type de consultation avec aperçu tarifaire → encaissement → confirmation.
+    L'authentification est gérée côté JS via JWT (redirection /dashboard si 401).
+    """
+    return FileResponse(str(STATIC_DIR / "nouvelle-consultation.html"))
+
+
 @app.get("/tarifs", include_in_schema=False)
 async def tarifs_page():
     """Sert la page HTML des tarifs et règles tarifaires (auth via JWT côté JS)."""

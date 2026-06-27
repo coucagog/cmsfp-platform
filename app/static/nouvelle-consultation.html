@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CMSFP — Nouvelle consultation</title>
+<style>
+  /* ------------------------------------------------------------------ */
+  /*  Design system — aligné sur le dashboard (mêmes variables)         */
+  /* ------------------------------------------------------------------ */
+  :root {
+    --bg: #0f172a;
+    --bg-2: #1e293b;
+    --card: #ffffff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --brand: #0ea5e9;
+    --brand-2: #2563eb;
+    --green: #16a34a;
+    --amber: #d97706;
+    --red: #dc2626;
+    --border: #e2e8f0;
+    --shadow: 0 10px 30px rgba(2, 6, 23, .12);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* Topbar */
+  .topbar {
+    background: rgba(15, 23, 42, .9);
+    backdrop-filter: blur(6px);
+    color: #fff;
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .topbar .brand { display: flex; align-items: center; gap: 12px; }
+  .topbar .logo {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    display: grid; place-items: center; font-weight: 800; color: #fff;
+    box-shadow: 0 6px 18px rgba(14,165,233,.45);
+  }
+  .topbar h1 { font-size: 18px; margin: 0; font-weight: 700; }
+  .topbar .sub { font-size: 12px; color: #94a3b8; }
+  .topbar .right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+  .pill {
+    background: rgba(255,255,255,.08);
+    color: #cbd5e1;
+    border: 1px solid rgba(255,255,255,.12);
+    padding: 6px 12px; border-radius: 999px; font-size: 12px;
+  }
+  .pill.ok { background: rgba(22,163,74,.18); color: #bbf7d0; border-color: rgba(22,163,74,.4); }
+
+  button.btn, a.btn {
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff; border: none; border-radius: 10px;
+    padding: 9px 16px; font-weight: 600; cursor: pointer; font-size: 13px;
+    box-shadow: 0 6px 16px rgba(37,99,235,.35);
+    transition: transform .08s ease, opacity .2s ease, box-shadow .2s ease;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+    line-height: 1;
+  }
+  button.btn:hover, a.btn:hover { transform: translateY(-1px); }
+  button.btn:active, a.btn:active { transform: translateY(0); }
+  button.btn:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+  button.btn.ghost, a.btn.ghost {
+    background: rgba(255,255,255,.08); color: #e2e8f0;
+    box-shadow: none; border: 1px solid rgba(255,255,255,.15);
+  }
+  button.btn.ghost:hover, a.btn.ghost:hover { background: rgba(255,255,255,.14); }
+  button.btn.success { background: linear-gradient(135deg, #16a34a, #15803d); box-shadow: 0 6px 16px rgba(22,163,74,.35); }
+  button.btn.danger { background: linear-gradient(135deg, #dc2626, #b91c1c); box-shadow: 0 6px 16px rgba(220,38,38,.30); }
+
+  .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  .err-banner {
+    background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
+    padding: 10px 14px; border-radius: 10px; font-size: 13px;
+    margin-bottom: 16px; display: none;
+  }
+  .err-banner.show { display: block; }
+
+  /* ------------------------------------------------------------------ */
+  /*  Stepper                                                           */
+  /* ------------------------------------------------------------------ */
+  .stepper {
+    background: var(--card); border-radius: 16px; padding: 20px 22px;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+    margin-bottom: 18px;
+  }
+  .stepper-track {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    position: relative; gap: 8px;
+  }
+  .stepper-track::before {
+    content: ""; position: absolute; top: 18px; left: 8%; right: 8%;
+    height: 3px; background: #e2e8f0; border-radius: 2px; z-index: 0;
+  }
+  .step-node {
+    position: relative; z-index: 1; flex: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    text-align: center;
+  }
+  .step-node .dot {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: #fff; border: 3px solid #e2e8f0; color: var(--muted);
+    display: grid; place-items: center; font-weight: 800; font-size: 15px;
+    transition: all .25s ease;
+  }
+  .step-node .lbl { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .step-node.active .dot { border-color: var(--brand); color: #fff; background: linear-gradient(135deg, var(--brand), var(--brand-2)); box-shadow: 0 4px 14px rgba(14,165,233,.45); }
+  .step-node.active .lbl { color: var(--brand-2); }
+  .step-node.done .dot { border-color: var(--green); background: var(--green); color: #fff; }
+  .step-node.done .lbl { color: #15803d; }
+
+  /* ------------------------------------------------------------------ */
+  /*  Panels                                                            */
+  /* ------------------------------------------------------------------ */
+  .panel {
+    background: var(--card); border-radius: 16px; padding: 24px;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+  }
+  .panel.hidden { display: none; }
+  .panel h2 { margin: 0 0 4px; font-size: 19px; }
+  .panel .desc { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  .panel-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+
+  /* Fields */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .field label .req { color: var(--red); }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 11px 13px; border: 1px solid var(--border);
+    border-radius: 10px; font-size: 14px; outline: none; font-family: inherit;
+    background: #fff; color: var(--ink);
+  }
+  .field textarea { resize: vertical; min-height: 64px; }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--brand); box-shadow: 0 0 0 3px rgba(14,165,233,.15);
+  }
+  .field input:disabled, .field select:disabled { background: #f1f5f9; color: var(--muted); }
+  .field .hint { font-size: 11px; color: var(--muted); margin-top: 5px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+
+  /* ------------------------------------------------------------------ */
+  /*  Step 1 — Recherche typeahead                                      */
+  /* ------------------------------------------------------------------ */
+  .search-wrap { position: relative; }
+  .search-input {
+    width: 100%; padding: 14px 16px 14px 46px; border: 1px solid var(--border);
+    border-radius: 12px; font-size: 15px; outline: none; background: #fff;
+  }
+  .search-input:focus { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(14,165,233,.15); }
+  .search-ico {
+    position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+    font-size: 17px; color: var(--muted); pointer-events: none;
+  }
+  .spinner-inline { width: 16px; height: 16px; border: 2px solid rgba(14,165,233,.3); border-top-color: var(--brand); border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .dropdown {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 5;
+    background: #fff; border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: var(--shadow); max-height: 320px; overflow-y: auto; display: none;
+  }
+  .dropdown.show { display: block; }
+  .dd-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px; border-bottom: 1px solid var(--border); cursor: pointer;
+  }
+  .dd-item:last-child { border-bottom: none; }
+  .dd-item:hover, .dd-item.kb-active { background: #f1f5f9; }
+  .dd-avatar {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px;
+  }
+  .dd-main { flex: 1; min-width: 0; }
+  .dd-name { font-weight: 600; font-size: 14px; }
+  .dd-sub { font-size: 12px; color: var(--muted); }
+  .dd-empty { padding: 16px; color: var(--muted); font-size: 13px; text-align: center; }
+
+  /* Patient sélectionné */
+  .selected-patient {
+    display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+    border: 1px solid var(--border); border-radius: 12px; background: #f8fafc;
+    margin-top: 16px;
+  }
+  .selected-patient .av {
+    width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 16px;
+  }
+  .selected-patient .info { flex: 1; min-width: 0; }
+  .selected-patient .info .nm { font-weight: 700; font-size: 15px; }
+  .selected-patient .info .dt { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .tag { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .tag.green { background: #dcfce7; color: #15803d; }
+  .tag.blue { background: #dbeafe; color: #1d4ed8; }
+  .tag.gray { background: #f1f5f9; color: #475569; }
+  .tag.amber { background: #fef3c7; color: #b45309; }
+
+  /* Toggle form nouvea patient */
+  .new-patient-card {
+    margin-top: 16px; border: 1px dashed var(--border); border-radius: 14px;
+    padding: 18px; background: #fbfdff; display: none;
+  }
+  .new-patient-card.show { display: block; }
+  .new-patient-card h3 { margin: 0 0 14px; font-size: 15px; }
+  .form-msg { font-size: 13px; min-height: 18px; margin-top: 6px; }
+  .form-msg.err { color: var(--red); }
+  .form-msg.ok { color: var(--green); }
+
+  /* ------------------------------------------------------------------ */
+  /*  Step 2 — Choix consultation                                       */
+  /* ------------------------------------------------------------------ */
+  .type-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;
+  }
+  .type-card {
+    border: 2px solid var(--border); border-radius: 14px; padding: 16px;
+    cursor: pointer; background: #fff; transition: all .15s ease; text-align: left;
+  }
+  .type-card:hover { border-color: var(--brand); box-shadow: 0 6px 16px rgba(14,165,233,.12); }
+  .type-card.selected { border-color: var(--brand-2); background: #eff6ff; box-shadow: 0 6px 16px rgba(37,99,235,.18); }
+  .type-card .ico { font-size: 22px; margin-bottom: 6px; }
+  .type-card .nm { font-weight: 700; font-size: 14px; }
+  .type-card .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .tarif-preview {
+    margin-top: 18px; padding: 16px; border-radius: 12px;
+    background: #f8fafc; border: 1px solid var(--border);
+  }
+  .tarif-preview.hidden { display: none; }
+  .tarif-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 13px; }
+  .tarif-row .k { color: var(--muted); }
+  .tarif-row .v { font-weight: 700; }
+  .tarif-row.total { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 10px; font-size: 16px; }
+  .tarif-row.total .v { font-size: 20px; color: var(--brand-2); }
+  .tarif-detail { font-size: 12px; color: var(--muted); margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+  .skel-line { color: var(--muted); font-size: 13px; }
+
+  /* ------------------------------------------------------------------ */
+  /*  Step 3 — Paiement                                                 */
+  /* ------------------------------------------------------------------ */
+  .mode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 8px; }
+  .mode-card {
+    border: 2px solid var(--border); border-radius: 12px; padding: 14px;
+    cursor: pointer; background: #fff; transition: all .15s ease; text-align: center;
+  }
+  .mode-card:hover { border-color: var(--brand); }
+  .mode-card.selected { border-color: var(--brand-2); background: #eff6ff; }
+  .mode-card .ico { font-size: 20px; }
+  .mode-card .nm { font-weight: 700; font-size: 13px; margin-top: 4px; }
+  .pay-summary {
+    margin-top: 16px; padding: 14px 16px; background: #f8fafc; border: 1px solid var(--border);
+    border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+  }
+  .pay-summary .lbl { font-size: 12px; color: var(--muted); }
+  .pay-summary .amt { font-size: 22px; font-weight: 800; color: var(--brand-2); }
+
+  /* ------------------------------------------------------------------ */
+  /*  Step 4 — Confirmation                                             */
+  /* ------------------------------------------------------------------ */
+  .confirm-success {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+    padding: 16px; border-radius: 12px; background: #dcfce7; border: 1px solid #bbf7d0;
+  }
+  .confirm-success .check {
+    width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+    background: var(--green); color: #fff; display: grid; place-items: center;
+    font-size: 24px; font-weight: 800;
+  }
+  .confirm-success .t { font-weight: 700; font-size: 16px; color: #14532d; }
+  .confirm-success .s { font-size: 13px; color: #166534; }
+  .recap { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .recap th, .recap td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .recap th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; width: 38%; }
+  .recap td .v { font-weight: 700; }
+  .recap-section { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--brand-2); font-weight: 800; padding-top: 14px !important; background: #f8fafc; }
+
+  footer { color: #94a3b8; text-align: center; font-size: 12px; margin-top: 30px; }
+
+  /* Toast */
+  .toast-wrap { position: fixed; top: 18px; right: 18px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--brand);
+    padding: 12px 16px; border-radius: 10px; box-shadow: var(--shadow); font-size: 13px;
+    min-width: 240px; max-width: 340px; animation: slidein .25s ease;
+  }
+  .toast.ok { border-left-color: var(--green); }
+  .toast.err { border-left-color: var(--red); }
+  @keyframes slidein { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  /* Layout: split search + new patient side by side on wide screens */
+  .patient-cols { display: grid; grid-template-columns: 1fr; gap: 16px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">CMS</div>
+    <div>
+      <h1>CMSFP — Nouvelle consultation</h1>
+      <div class="sub">Centre Médico-Social de la Fonction Publique</div>
+    </div>
+  </div>
+  <div class="right">
+    <a class="btn ghost" href="/dashboard">← Tableau de bord</a>
+    <a class="btn ghost" href="/caisse">Caisse</a>
+    <span id="sessionPill" class="pill">Non connecté</span>
+    <button class="btn ghost" id="logoutBtn" onclick="logout()">Déconnexion</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="errBanner" class="err-banner"></div>
+
+  <!-- Stepper -->
+  <div class="stepper">
+    <div class="stepper-track" id="stepperTrack">
+      <div class="step-node active" data-step="1">
+        <div class="dot">1</div><div class="lbl">Patient</div>
+      </div>
+      <div class="step-node" data-step="2">
+        <div class="dot">2</div><div class="lbl">Consultation</div>
+      </div>
+      <div class="step-node" data-step="3">
+        <div class="dot">3</div><div class="lbl">Paiement</div>
+      </div>
+      <div class="step-node" data-step="4">
+        <div class="dot">4</div><div class="lbl">Confirmation</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ÉTAPE 1 — PATIENT ============ -->
+  <div class="panel" id="panel-1">
+    <h2>1. Sélection du patient</h2>
+    <p class="desc">Recherchez un patient existant (nom, prénom, téléphone, matricule) ou créez une nouvelle fiche.</p>
+
+    <div class="patient-cols">
+      <div>
+        <div class="search-wrap">
+          <span class="search-ico">🔍</span>
+          <input id="searchInput" class="search-input" type="text"
+                 placeholder="Nom, prénom, téléphone, matricule…" autocomplete="off" />
+          <span id="searchSpinner" class="spinner-inline" style="position:absolute;right:16px;top:50%;transform:translateY(-50%);display:none;"></span>
+          <div class="dropdown" id="searchDropdown"></div>
+        </div>
+
+        <div class="selected-patient" id="selectedPatient" style="display:none;">
+          <div class="av" id="spAvatar">—</div>
+          <div class="info">
+            <div class="nm" id="spName">—</div>
+            <div class="dt" id="spDetails">—</div>
+          </div>
+          <button class="btn ghost" onclick="clearPatient()" style="padding:7px 12px;">Changer</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;">
+      <button class="btn ghost" id="toggleNewPatientBtn" onclick="toggleNewPatient()">＋ Nouveau patient</button>
+    </div>
+
+    <!-- Formulaire nouveau patient -->
+    <div class="new-patient-card" id="newPatientCard">
+      <h3>Création d'un nouveau patient</h3>
+      <div class="form-grid">
+        <div class="field">
+          <label>Nom <span class="req">*</span></label>
+          <input id="np_nom" type="text" maxlength="100" />
+        </div>
+        <div class="field">
+          <label>Prénom <span class="req">*</span></label>
+          <input id="np_prenom" type="text" maxlength="100" />
+        </div>
+        <div class="field">
+          <label>Téléphone</label>
+          <input id="np_telephone" type="tel" maxlength="20" />
+        </div>
+        <div class="field">
+          <label>Matricule <span style="color:var(--muted);font-weight:400;">(optionnel)</span></label>
+          <input id="np_matricule" type="text" maxlength="50" />
+        </div>
+        <div class="field">
+          <label>Statut <span class="req">*</span></label>
+          <select id="np_status">
+            <option value="fonctionnaire">Fonctionnaire</option>
+            <option value="ayant_droit">Ayant droit</option>
+            <option value="non_ayant_droit" selected>Non ayant droit</option>
+          </select>
+          <div class="hint">Le statut détermine le tarif appliqué (gratuité, 1/5, plein tarif).</div>
+        </div>
+        <div class="field">
+          <label>Date de naissance</label>
+          <input id="np_date_naissance" type="date" />
+        </div>
+        <div class="field full">
+          <label>Adresse</label>
+          <textarea id="np_adresse" maxlength="500" placeholder="Adresse postale (optionnel)"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:6px;">
+        <button class="btn" id="createPatientBtn" onclick="createPatient()">Créer le patient</button>
+        <button class="btn ghost" onclick="toggleNewPatient()">Annuler</button>
+      </div>
+      <div class="form-msg" id="npMsg"></div>
+    </div>
+
+    <div class="panel-actions">
+      <span></span>
+      <button class="btn" id="next1" onclick="goToStep(2)" disabled>Suivant →</button>
+    </div>
+  </div>
+
+  <!-- ============ ÉTAPE 2 — CONSULTATION ============ -->
+  <div class="panel hidden" id="panel-2">
+    <h2>2. Type de consultation</h2>
+    <p class="desc">Sélectionnez la prestation. Le tarif est calculé automatiquement selon le statut du patient.</p>
+
+    <div class="type-grid" id="typeGrid"></div>
+
+    <div class="tarif-preview hidden" id="tarifPreview">
+      <div class="tarif-row"><span class="k">Patient</span><span class="v" id="tpPatient">—</span></div>
+      <div class="tarif-row"><span class="k">Statut</span><span id="tpStatut">—</span></div>
+      <div class="tarif-row"><span class="k">Prestation</span><span class="v" id="tpPrestation">—</span></div>
+      <div class="tarif-row"><span class="k">Remise appliquée</span><span class="v" id="tpRemise">—</span></div>
+      <div class="tarif-row total"><span class="k">Montant à payer</span><span class="v" id="tpMontant">—</span></div>
+      <div class="tarif-detail" id="tpDetail"></div>
+    </div>
+
+    <div class="panel-actions">
+      <button class="btn ghost" onclick="goToStep(1)">← Retour</button>
+      <button class="btn" id="next2" onclick="goToStep(3)" disabled>Suivant →</button>
+    </div>
+  </div>
+
+  <!-- ============ ÉTAPE 3 — PAIEMENT ============ -->
+  <div class="panel hidden" id="panel-3">
+    <h2>3. Encaissement</h2>
+    <p class="desc">Choisissez le mode de paiement et vérifiez le montant. Le tarif a été calculé à l'étape précédente.</p>
+
+    <div class="mode-grid" id="modeGrid"></div>
+
+    <div class="form-grid" style="margin-top:8px;">
+      <div class="field">
+        <label>Montant encaissé (FCFA)</label>
+        <input id="payMontant" type="number" min="0" step="1" inputmode="numeric" />
+        <div class="hint">Montant prérempli depuis le tarif. Ajustable si nécessaire.</div>
+      </div>
+      <div class="field">
+        <label>Statut du paiement</label>
+        <select id="payStatut">
+          <option value="effectue" selected>Encaissé (effectué)</option>
+          <option value="differe">Différé</option>
+        </select>
+        <div class="hint">« Différé » : paiement à régler ultérieurement.</div>
+      </div>
+    </div>
+
+    <div class="pay-summary">
+      <div>
+        <div class="lbl" id="psLbl">À encaisser</div>
+        <div class="amt" id="psAmt">—</div>
+      </div>
+      <button class="btn success" id="encaisserBtn" onclick="encaisser()">💳 Encaisser</button>
+    </div>
+
+    <div class="panel-actions">
+      <button class="btn ghost" onclick="goToStep(2)">← Retour</button>
+      <span></span>
+    </div>
+  </div>
+
+  <!-- ============ ÉTAPE 4 — CONFIRMATION ============ -->
+  <div class="panel hidden" id="panel-4">
+    <div class="confirm-success">
+      <div class="check">✓</div>
+      <div>
+        <div class="t">Consultation enregistrée</div>
+        <div class="s" id="confirmSub">Le paiement a été encaissé avec succès.</div>
+      </div>
+    </div>
+
+    <table class="recap" id="recapTable"></table>
+
+    <div class="panel-actions">
+      <a class="btn ghost" id="linkFiche" href="#">Voir la fiche patient →</a>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a class="btn ghost" href="/caisse">Voir la caisse</a>
+        <button class="btn" onclick="resetWorkflow()">＋ Nouvelle consultation</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>CMSFP Platform — Assistant « Nouvelle consultation » · Montants en FCFA (entiers) · Authentification JWT</footer>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* ================================================================== */
+/*  Configuration & constantes                                        */
+/* ================================================================== */
+/* NOTE DE SÉCURITÉ (XSS) :
+ * Toutes les insertions de contenu dynamique (données patient, montants,
+ * libellés provenant de l'API) passent par escapeHtml() avant d'être
+ * injectées via innerHTML. Les seules chaînes non échappées sont des
+ * gabarits HTML statiques contenant exclusivement des indices numériques
+ * ou des constantes définies ici. Aucune donnée utilisateur brute n'est
+ * insérée sans échappement. */
+const API_BASE = window.location.origin + "/api/v1";
+let TOKEN = localStorage.getItem("access_token");
+
+const STATUT_LABELS = {
+  fonctionnaire: "Fonctionnaire",
+  ayant_droit: "Ayant droit",
+  non_ayant_droit: "Non ayant droit",
+};
+const STATUT_TAG = {
+  fonctionnaire: "green",
+  ayant_droit: "blue",
+  non_ayant_droit: "gray",
+};
+
+// ConsultationType (modèle) → libellé + icône
+const CONSULTATIONS = [
+  { value: "generale",        label: "Consultation générale",  ico: "🩺", sub: "Visite médicale" },
+  { value: "ophtalmologique", label: "Ophtalmologie",          ico: "👁️", sub: "Consultation spécialisée" },
+  { value: "odontologique",   label: "Odontologie",            ico: "🦷", sub: "Soins dentaires" },
+  { value: "cardiologie",     label: "Cardiologie",            ico: "❤️", sub: "Consultation spécialisée" },
+  { value: "analyse",         label: "Analyse biologique",     ico: "🧪", sub: "Bilan / laboratoire" },
+  { value: "imagerie",        label: "Imagerie",               ico: "📷", sub: "Radio / échographie" },
+];
+
+// ModePaiement → libellé + icône
+const MODES = [
+  { value: "especes",      label: "Espèces",      ico: "💵" },
+  { value: "carte",        label: "Carte",        ico: "💳" },
+  { value: "virement",     label: "Virement",     ico: "🏦" },
+  { value: "mobile_money", label: "Mobile money", ico: "📱" },
+  { value: "cheque",       label: "Chèque",       ico: "📝" },
+];
+
+const fmtFCFA = n => new Intl.NumberFormat("fr-FR").format(Math.round(n || 0)) + " FCFA";
+const fmtDate = d => d ? new Date(d).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" }) : "—";
+
+/* ================================================================== */
+/*  État global du workflow                                            */
+/* ================================================================== */
+const state = {
+  step: 1,
+  patient: null,           // PatientResponse
+  consultationType: null,  // value (string)
+  tarif: null,             // { montant, remise, gratuit, details_tarif }
+  selectedMode: "especes",
+  consultation: null,      // ConsultationWithTarifResponse (créée)
+  paiement: null,          // PaiementResponse | null
+};
+
+/* ================================================================== */
+/*  Authentification                                                   */
+/* ================================================================== */
+function checkAuth() {
+  if (!TOKEN) {
+    window.location.href = "/dashboard";
+    return false;
+  }
+  document.getElementById("sessionPill").textContent = "Connecté";
+  document.getElementById("sessionPill").className = "pill ok";
+  return true;
+}
+
+function logout() {
+  localStorage.removeItem("access_token");
+  TOKEN = null;
+  window.location.href = "/dashboard";
+}
+
+/* ================================================================== */
+/*  Helpers fetch (JWT)                                               */
+/* ================================================================== */
+function showErr(msg) {
+  const b = document.getElementById("errBanner");
+  b.textContent = msg;
+  b.classList.toggle("show", !!msg);
+}
+
+async function apiGet(path) {
+  const res = await fetch(API_BASE + path, { headers: { Authorization: "Bearer " + TOKEN } });
+  if (res.status === 401) { handle401(); throw new Error("401"); }
+  if (!res.ok) throw await httpError(res, path);
+  return res.json();
+}
+
+async function apiPost(path, body) {
+  const res = await fetch(API_BASE + path, {
+    method: "POST",
+    headers: { Authorization: "Bearer " + TOKEN, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (res.status === 401) { handle401(); throw new Error("401"); }
+  if (!res.ok) throw await httpError(res, path);
+  return res.json();
+}
+
+async function httpError(res, path) {
+  let detail = "HTTP " + res.status;
+  try {
+    const data = await res.json();
+    if (data && data.detail) detail = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
+  } catch (_) {}
+  return new Error(detail + " (" + path + ")");
+}
+
+function handle401() {
+  showErr("Session expirée — redirection vers le tableau de bord…");
+  setTimeout(() => { localStorage.removeItem("access_token"); window.location.href = "/dashboard"; }, 900);
+}
+
+/* ================================================================== */
+/*  Toasts                                                            */
+/* ================================================================== */
+function toast(msg, kind) {
+  const wrap = document.getElementById("toastWrap");
+  const el = document.createElement("div");
+  el.className = "toast " + (kind || "");
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .3s"; setTimeout(() => el.remove(), 300); }, 3600);
+}
+
+/* ================================================================== */
+/*  Navigation du stepper                                             */
+/* ================================================================== */
+function goToStep(n) {
+  state.step = n;
+  renderStepper();
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById("panel-" + i).classList.toggle("hidden", i !== n);
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (n === 2) renderTypeGrid();
+  if (n === 3) initPaiement();
+}
+
+function renderStepper() {
+  document.querySelectorAll("#stepperTrack .step-node").forEach(node => {
+    const s = parseInt(node.dataset.step, 10);
+    node.classList.remove("active", "done");
+    if (s < state.step) node.classList.add("done");
+    else if (s === state.step) node.classList.add("active");
+  });
+  // Le numéro devient une coche quand l'étape est terminée
+  document.querySelectorAll("#stepperTrack .step-node.done .dot").forEach(d => { d.textContent = "✓"; });
+  document.querySelectorAll("#stepperTrack .step-node:not(.done) .dot").forEach(d => {
+    d.textContent = d.closest(".step-node").dataset.step;
+  });
+}
+
+/* ================================================================== */
+/*  ÉTAPE 1 — Recherche typeahead + création patient                  */
+/* ================================================================== */
+const searchInput = document.getElementById("searchInput");
+const searchDropdown = document.getElementById("searchDropdown");
+const searchSpinner = document.getElementById("searchSpinner");
+let searchTimer = null;
+let kbIndex = -1;
+let lastResults = [];
+
+searchInput.addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  const q = searchInput.value.trim();
+  if (q.length < 1) { searchDropdown.classList.remove("show"); return; }
+  searchSpinner.style.display = "inline-block";
+  searchTimer = setTimeout(() => doSearch(q), 280);
+});
+
+searchInput.addEventListener("keydown", e => {
+  const items = searchDropdown.querySelectorAll(".dd-item");
+  if (!searchDropdown.classList.contains("show") || !items.length) return;
+  if (e.key === "ArrowDown") { e.preventDefault(); kbIndex = Math.min(kbIndex + 1, items.length - 1); updateKb(); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); kbIndex = Math.max(kbIndex - 1, 0); updateKb(); }
+  else if (e.key === "Enter") { e.preventDefault(); if (kbIndex >= 0) selectPatient(lastResults[kbIndex]); else if (lastResults.length) selectPatient(lastResults[0]); }
+  else if (e.key === "Escape") { searchDropdown.classList.remove("show"); }
+});
+
+function updateKb() {
+  searchDropdown.querySelectorAll(".dd-item").forEach((it, i) => it.classList.toggle("kb-active", i === kbIndex));
+}
+
+document.addEventListener("click", e => {
+  if (!e.target.closest(".search-wrap")) searchDropdown.classList.remove("show");
+});
+
+async function doSearch(q) {
+  try {
+    const data = await apiGet("/patients/search?q=" + encodeURIComponent(q) + "&limit=15");
+    lastResults = data.patients || [];
+    kbIndex = -1;
+    renderDropdown(lastResults, q);
+  } catch (e) {
+    if (e.message !== "401") renderDropdown([], q, "Erreur de recherche : " + e.message);
+  } finally {
+    searchSpinner.style.display = "none";
+  }
+}
+
+function renderDropdown(patients, q, errMsg) {
+  if (errMsg) {
+    searchDropdown.innerHTML = '<div class="dd-empty">' + escapeHtml(errMsg) + '</div>';
+    searchDropdown.classList.add("show");
+    return;
+  }
+  if (!patients.length) {
+    searchDropdown.innerHTML = '<div class="dd-empty">Aucun patient trouvé pour « ' + escapeHtml(q) + ' ». Créez une nouvelle fiche ci-dessous.</div>';
+    searchDropdown.classList.add("show");
+    return;
+  }
+  searchDropdown.innerHTML = patients.map((p, i) =>
+    '<div class="dd-item" data-idx="' + i + '" onclick="selectPatient(lastResults[' + i + '])">' +
+      '<div class="dd-avatar">' + escapeHtml(initiales(p)) + '</div>' +
+      '<div class="dd-main">' +
+        '<div class="dd-name">' + escapeHtml((p.nom + " " + p.prenom).trim()) + '</div>' +
+        '<div class="dd-sub">' + escapeHtml(patientSubline(p)) + '</div>' +
+      '</div>' +
+      '<span class="tag ' + (STATUT_TAG[p.status] || "gray") + '">' + escapeHtml(STATUT_LABELS[p.status] || p.status) + '</span>' +
+    '</div>'
+  ).join("");
+  searchDropdown.classList.add("show");
+}
+
+function patientSubline(p) {
+  const parts = [];
+  if (p.telephone) parts.push("☎ " + p.telephone);
+  if (p.matricule) parts.push("#" + p.matricule);
+  parts.push("ID " + p.id);
+  return parts.join(" · ");
+}
+
+function initiales(p) {
+  return ((p.prenom || "").charAt(0) + (p.nom || "").charAt(0)).toUpperCase() || "?";
+}
+
+function selectPatient(p) {
+  if (!p) return;
+  searchDropdown.classList.remove("show");
+  searchInput.value = "";
+  state.patient = p;
+  document.getElementById("spAvatar").textContent = initiales(p);
+  document.getElementById("spName").textContent = (p.nom + " " + p.prenom).trim();
+  document.getElementById("spDetails").innerHTML =
+    '<span class="tag ' + (STATUT_TAG[p.status] || "gray") + '">' + escapeHtml(STATUT_LABELS[p.status] || p.status) + '</span> ' +
+    escapeHtml(patientSubline(p));
+  document.getElementById("selectedPatient").style.display = "flex";
+  document.getElementById("next1").disabled = false;
+  // Replie le formulaire nouveau patient si ouvert
+  document.getElementById("newPatientCard").classList.remove("show");
+  toast("Patient sélectionné : " + (p.nom + " " + p.prenom).trim());
+}
+
+function clearPatient() {
+  state.patient = null;
+  document.getElementById("selectedPatient").style.display = "none";
+  document.getElementById("next1").disabled = true;
+  searchInput.focus();
+}
+
+/* --- Nouveau patient --- */
+function toggleNewPatient() {
+  const card = document.getElementById("newPatientCard");
+  const open = card.classList.toggle("show");
+  if (open) {
+    document.getElementById("np_nom").focus();
+  }
+}
+
+async function createPatient() {
+  const msg = document.getElementById("npMsg");
+  msg.textContent = "";
+  msg.className = "form-msg";
+
+  const nom = document.getElementById("np_nom").value.trim();
+  const prenom = document.getElementById("np_prenom").value.trim();
+  if (!nom || !prenom) {
+    msg.textContent = "Le nom et le prénom sont obligatoires.";
+    msg.className = "form-msg err";
+    return;
+  }
+
+  const body = {
+    nom,
+    prenom,
+    status: document.getElementById("np_status").value,
+  };
+  const tel = document.getElementById("np_telephone").value.trim();
+  if (tel) body.telephone = tel;
+  const mat = document.getElementById("np_matricule").value.trim();
+  if (mat) body.matricule = mat;
+  const dn = document.getElementById("np_date_naissance").value;
+  if (dn) body.date_naissance = dn + "T00:00:00";
+  const adr = document.getElementById("np_adresse").value.trim();
+  if (adr) body.adresse = adr;
+
+  const btn = document.getElementById("createPatientBtn");
+  btn.disabled = true;
+  btn.textContent = "Création…";
+  try {
+    const p = await apiPost("/patients", body);
+    msg.textContent = "Patient #" + p.id + " créé avec succès.";
+    msg.className = "form-msg ok";
+    toast("Patient créé : " + (p.nom + " " + p.prenom).trim(), "ok");
+    selectPatient(p);
+  } catch (e) {
+    if (e.message !== "401") {
+      msg.textContent = "Erreur : " + e.message;
+      msg.className = "form-msg err";
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Créer le patient";
+  }
+}
+
+/* ================================================================== */
+/*  ÉTAPE 2 — Type de consultation + preview tarif                    */
+/* ================================================================== */
+function renderTypeGrid() {
+  const grid = document.getElementById("typeGrid");
+  grid.innerHTML = CONSULTATIONS.map(c =>
+    '<button type="button" class="type-card' + (state.consultationType === c.value ? " selected" : "") + '" data-val="' + c.value + '" onclick="selectType(\'' + c.value + '\')">' +
+      '<div class="ico">' + c.ico + '</div>' +
+      '<div class="nm">' + escapeHtml(c.label) + '</div>' +
+      '<div class="sub">' + escapeHtml(c.sub) + '</div>' +
+    '</button>'
+  ).join("");
+  // Si un type était déjà choisi, on rafraîchit le preview
+  if (state.consultationType) selectType(state.consultationType, true);
+}
+
+async function selectType(value, silent) {
+  state.consultationType = value;
+  document.querySelectorAll("#typeGrid .type-card").forEach(c =>
+    c.classList.toggle("selected", c.dataset.val === value)
+  );
+  const c = CONSULTATIONS.find(x => x.value === value);
+  document.getElementById("tpPrestation").textContent = c ? c.label : value;
+
+  const preview = document.getElementById("tarifPreview");
+  preview.classList.remove("hidden");
+  document.getElementById("tpMontant").innerHTML = '<span class="skel-line">Calcul du tarif…</span>';
+  document.getElementById("tpRemise").textContent = "—";
+  document.getElementById("tpDetail").textContent = "";
+  document.getElementById("next2").disabled = true;
+
+  try {
+    const r = await apiPost("/consultations/preview-tarif", { patient_id: state.patient.id, type: value });
+    state.tarif = r;
+    document.getElementById("tpPatient").textContent = (state.patient.nom + " " + state.patient.prenom).trim();
+    document.getElementById("tpStatut").innerHTML =
+      '<span class="tag ' + (STATUT_TAG[state.patient.status] || "gray") + '">' +
+      escapeHtml(STATUT_LABELS[state.patient.status] || state.patient.status) + '</span>';
+    document.getElementById("tpRemise").textContent = r.gratuit ? "—" : fmtFCFA(r.remise);
+    document.getElementById("tpMontant").innerHTML = r.gratuit
+      ? '<span class="tag green">GRATUIT</span>'
+      : fmtFCFA(r.montant);
+    document.getElementById("tpDetail").textContent = "Détail : " + (r.details_tarif || "—");
+    document.getElementById("next2").disabled = false;
+    if (!silent) toast("Tarif calculé : " + (r.gratuit ? "gratuit" : fmtFCFA(r.montant)));
+  } catch (e) {
+    if (e.message !== "401") {
+      document.getElementById("tpMontant").innerHTML = '<span style="color:var(--red)">Erreur : ' + escapeHtml(e.message) + '</span>';
+      showErr("Impossible de calculer le tarif : " + e.message);
+    }
+  }
+}
+
+/* ================================================================== */
+/*  ÉTAPE 3 — Paiement                                                */
+/* ================================================================== */
+function renderModeGrid() {
+  document.getElementById("modeGrid").innerHTML = MODES.map(m =>
+    '<button type="button" class="mode-card' + (state.selectedMode === m.value ? " selected" : "") + '" data-val="' + m.value + '" onclick="selectMode(\'' + m.value + '\')">' +
+      '<div class="ico">' + m.ico + '</div>' +
+      '<div class="nm">' + escapeHtml(m.label) + '</div>' +
+    '</button>'
+  ).join("");
+}
+
+function selectMode(value) {
+  state.selectedMode = value;
+  document.querySelectorAll("#modeGrid .mode-card").forEach(c =>
+    c.classList.toggle("selected", c.dataset.val === value)
+  );
+}
+
+function initPaiement() {
+  renderModeGrid();
+  selectMode(state.selectedMode);
+  const montant = state.tarif ? (state.tarif.gratuit ? 0 : state.tarif.montant) : 0;
+  const input = document.getElementById("payMontant");
+  input.value = montant;
+  input.disabled = state.tarif && state.tarif.gratuit;
+  document.getElementById("payStatut").value = "effectue";
+  if (state.tarif && state.tarif.gratuit) {
+    document.getElementById("psLbl").textContent = "Gratuit — aucune encaissement requis";
+    document.getElementById("encaisserBtn").textContent = "✓ Valider (gratuit)";
+    document.getElementById("encaisserBtn").classList.remove("success");
+  } else {
+    document.getElementById("psLbl").textContent = "À encaisser";
+    document.getElementById("encaisserBtn").textContent = "💳 Encaisser";
+    document.getElementById("encaisserBtn").classList.add("success");
+  }
+  updatePaySummary();
+  document.getElementById("payMontant").addEventListener("input", updatePaySummary);
+}
+
+function updatePaySummary() {
+  const m = parseInt(document.getElementById("payMontant").value, 10) || 0;
+  document.getElementById("psAmt").textContent = fmtFCFA(m);
+}
+
+async function encaisser() {
+  const btn = document.getElementById("encaisserBtn");
+  const montant = parseInt(document.getElementById("payMontant").value, 10) || 0;
+  const mode = state.selectedMode;
+  const statut = document.getElementById("payStatut").value;
+  const gratuit = state.tarif && state.tarif.gratuit;
+
+  if (!gratuit && montant <= 0) {
+    showErr("Le montant encaissé doit être supérieur à 0.");
+    toast("Montant invalide", "err");
+    return;
+  }
+  if (statut === "differe" && montant <= 0) {
+    showErr("Un paiement différé doit avoir un montant > 0.");
+    return;
+  }
+
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = "Traitement…";
+  showErr("");
+
+  try {
+    // 1. Créer la consultation (le tarif est recalculé côté serveur)
+    const consultation = await apiPost("/consultations", {
+      patient_id: state.patient.id,
+      type: state.consultationType,
+    });
+    state.consultation = consultation;
+
+    // 2. Encaisser (uniquement si un montant est dû)
+    if (gratuit || montant === 0) {
+      state.paiement = null;
+    } else {
+      const paiement = await apiPost("/paiements", {
+        patient_id: state.patient.id,
+        consultation_id: consultation.id,
+        montant: montant,
+        mode: mode,
+        statut: statut,
+      });
+      state.paiement = paiement;
+    }
+    btn.disabled = false;
+    btn.textContent = original;
+    renderConfirmation();
+    goToStep(4);
+    toast(state.paiement ? "Paiement encaissé avec succès" : "Consultation enregistrée (gratuit)", "ok");
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = original;
+    if (e.message !== "401") {
+      showErr("Échec de l'encaissement : " + e.message);
+      toast("Échec : " + e.message, "err");
+    }
+  }
+}
+
+/* ================================================================== */
+/*  ÉTAPE 4 — Confirmation                                            */
+/* ================================================================== */
+function renderConfirmation() {
+  const p = state.patient;
+  const c = state.consultation;
+  const pay = state.paiement;
+  const typeLabel = (CONSULTATIONS.find(x => x.value === state.consultationType) || {}).label || state.consultationType;
+  const modeLabel = (MODES.find(x => x.value === (pay ? pay.mode : state.selectedMode)) || {}).label || "—";
+
+  const sub = document.getElementById("confirmSub");
+  sub.textContent = pay
+    ? "Paiement #" + pay.id + " encaissé le " + fmtDate(pay.date_paiement) + "."
+    : "Consultation gratuite — aucun encaissement enregistré.";
+
+  const rows = [];
+  rows.push('<tr><td colspan="2" class="recap-section">Patient</td></tr>');
+  rows.push(recapRow("Identité", '<span class="v">' + escapeHtml((p.nom + " " + p.prenom).trim()) + "</span>"));
+  rows.push(recapRow("Statut", '<span class="tag ' + (STATUT_TAG[p.status] || "gray") + '">' + escapeHtml(STATUT_LABELS[p.status] || p.status) + "</span>"));
+  if (p.telephone) rows.push(recapRow("Téléphone", escapeHtml(p.telephone)));
+  if (p.matricule) rows.push(recapRow("Matricule", escapeHtml(p.matricule)));
+  rows.push(recapRow("Identifiant", "Patient #" + p.id));
+
+  rows.push('<tr><td colspan="2" class="recap-section">Consultation</td></tr>');
+  rows.push(recapRow("Type de prestation", '<span class="v">' + escapeHtml(typeLabel) + "</span>"));
+  rows.push(recapRow("Consultation #" , c ? c.id : "—"));
+  rows.push(recapRow("Montant tarifé", c ? (c.gratuit ? '<span class="tag green">GRATUIT</span>' : fmtFCFA(c.montant)) : "—"));
+  if (c && !c.gratuit) rows.push(recapRow("Remise appliquée", fmtFCFA(c.remise)));
+  rows.push(recapRow("Date", fmtDate(c ? c.created_at : null)));
+  if (c && c.details_tarif) rows.push(recapRow("Détail tarif", escapeHtml(c.details_tarif)));
+
+  rows.push('<tr><td colspan="2" class="recap-section">Paiement</td></tr>');
+  if (pay) {
+    rows.push(recapRow("Paiement #", pay.id));
+    rows.push(recapRow("Montant encaissé", '<span class="v">' + fmtFCFA(pay.montant) + "</span>"));
+    rows.push(recapRow("Mode", escapeHtml(modeLabel)));
+    rows.push(recapRow("Statut", '<span class="tag ' + (pay.statut === "effectue" ? "green" : "amber") + '">' + escapeHtml(pay.statut) + "</span>"));
+    rows.push(recapRow("Date", fmtDate(pay.date_paiement)));
+  } else {
+    rows.push(recapRow("Paiement", '<span class="tag gray">Aucun — prestation gratuite</span>'));
+  }
+
+  document.getElementById("recapTable").innerHTML = "<tbody>" + rows.join("") + "</tbody>";
+
+  // Lien vers la fiche patient
+  const link = document.getElementById("linkFiche");
+  link.href = "/fiche-patient?id=" + p.id;
+}
+
+function recapRow(k, v) {
+  return '<tr><th>' + escapeHtml(k) + '</th><td>' + v + '</td></tr>';
+}
+
+/* ================================================================== */
+/*  Reset — nouvelle consultation                                     */
+/* ================================================================== */
+function resetWorkflow() {
+  state.patient = null;
+  state.consultationType = null;
+  state.tarif = null;
+  state.selectedMode = "especes";
+  state.consultation = null;
+  state.paiement = null;
+  document.getElementById("selectedPatient").style.display = "none";
+  document.getElementById("next1").disabled = true;
+  document.getElementById("next2").disabled = true;
+  document.getElementById("tarifPreview").classList.add("hidden");
+  document.getElementById("newPatientCard").classList.remove("show");
+  document.getElementById("npMsg").textContent = "";
+  // Vide le formulaire nouveau patient
+  ["np_nom","np_prenom","np_telephone","np_matricule","np_date_naissance","np_adresse"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+  document.getElementById("np_status").value = "non_ayant_droit";
+  searchInput.value = "";
+  showErr("");
+  goToStep(1);
+  setTimeout(() => searchInput.focus(), 300);
+}
+
+/* ================================================================== */
+/*  Utilitaires                                                       */
+/* ================================================================== */
+function escapeHtml(s) {
+  if (s === null || s === undefined) return "";
+  return String(s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+/* ================================================================== */
+/*  Initialisation                                                    */
+/* ================================================================== */
+if (checkAuth()) {
+  renderStepper();
+  searchInput.focus();
+}
+</script>
+</body>
+</html>

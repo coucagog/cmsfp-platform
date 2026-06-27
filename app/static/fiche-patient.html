@@ -816,7 +816,15 @@ function nouvelleRecherche() {
 /*  Initialisation                                                    */
 /* ------------------------------------------------------------------ */
 if (checkAuth()) {
-  searchInput.focus();
+  // Permet d'ouvrir directement la fiche d'un patient via /fiche-patient?id=123
+  // (utilisé notamment par le lien de confirmation de l'assistant Nouvelle consultation).
+  const params = new URLSearchParams(window.location.search);
+  const initialId = parseInt(params.get("id"), 10);
+  if (initialId && Number.isFinite(initialId)) {
+    selectPatient(initialId);
+  } else {
+    searchInput.focus();
+  }
 }
 </script>
 </body>
