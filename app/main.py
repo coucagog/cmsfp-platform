@@ -212,13 +212,6 @@ async def health():
 
 
 @app.get("/dashboard", include_in_schema=False)
-async def dashboard_page(
-    _user=Depends(auth.get_current_user),
-):
-    """
-    Sert la page HTML du tableau de bord de pilotage budgétaire.
-
-    OWASP A05 : cet endpoint était précédemment public. Il est désormais
-    protégé par JWT. Le navigateur doit fournir un Bearer token valide.
-    """
+async def dashboard_page():
+    """Sert la page HTML du tableau de bord (auth gérée côté JS via JWT)."""
     return FileResponse(str(STATIC_DIR / "dashboard.html"))
