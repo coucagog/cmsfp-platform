@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CMSFP — Tableau de bord de pilotage budgétaire</title>
+<!-- Chart.js (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f172a;
+    --bg-2: #1e293b;
+    --card: #ffffff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --brand: #0ea5e9;
+    --brand-2: #2563eb;
+    --green: #16a34a;
+    --amber: #d97706;
+    --red: #dc2626;
+    --border: #e2e8f0;
+    --shadow: 0 10px 30px rgba(2, 6, 23, .12);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  .topbar {
+    background: rgba(15, 23, 42, .9);
+    backdrop-filter: blur(6px);
+    color: #fff;
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .topbar .brand { display: flex; align-items: center; gap: 12px; }
+  .topbar .logo {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    display: grid; place-items: center; font-weight: 800; color: #fff;
+    box-shadow: 0 6px 18px rgba(14,165,233,.45);
+  }
+  .topbar h1 { font-size: 18px; margin: 0; font-weight: 700; }
+  .topbar .sub { font-size: 12px; color: #94a3b8; }
+  .topbar .right { display: flex; align-items: center; gap: 14px; }
+  .pill {
+    background: rgba(255,255,255,.08);
+    color: #cbd5e1;
+    border: 1px solid rgba(255,255,255,.12);
+    padding: 6px 12px; border-radius: 999px; font-size: 12px;
+  }
+  .pill.ok { background: rgba(22,163,74,.18); color: #bbf7d0; border-color: rgba(22,163,74,.4); }
+  .pill.bad { background: rgba(220,38,38,.18); color: #fecaca; border-color: rgba(220,38,38,.4); }
+  button.btn {
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff; border: none; border-radius: 10px;
+    padding: 9px 16px; font-weight: 600; cursor: pointer; font-size: 13px;
+    box-shadow: 0 6px 16px rgba(37,99,235,.35);
+    transition: transform .08s ease, opacity .2s ease;
+  }
+  button.btn:hover { transform: translateY(-1px); }
+  button.btn:active { transform: translateY(0); }
+  button.btn.ghost {
+    background: rgba(255,255,255,.08); color: #e2e8f0;
+    box-shadow: none; border: 1px solid rgba(255,255,255,.15);
+  }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* Login overlay */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(2,6,23,.7);
+    display: grid; place-items: center; z-index: 50;
+    backdrop-filter: blur(4px);
+  }
+  .overlay.hidden { display: none; }
+  .login-card {
+    background: var(--card); border-radius: 18px; padding: 30px;
+    width: min(420px, 92vw); box-shadow: var(--shadow);
+  }
+  .login-card h2 { margin: 0 0 6px; font-size: 20px; }
+  .login-card p { margin: 0 0 20px; color: var(--muted); font-size: 13px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .field input {
+    width: 100%; padding: 11px 13px; border: 1px solid var(--border);
+    border-radius: 10px; font-size: 14px; outline: none;
+  }
+  .field input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(14,165,233,.15); }
+  .login-msg { color: var(--red); font-size: 13px; min-height: 18px; margin-top: 8px; }
+
+  /* KPI cards */
+  .kpi-grid {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    margin-bottom: 22px;
+  }
+  .kpi {
+    background: var(--card); border-radius: 16px; padding: 18px 20px;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+    position: relative; overflow: hidden;
+  }
+  .kpi .label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .kpi .value { font-size: 26px; font-weight: 800; margin-top: 6px; }
+  .kpi .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .kpi .accent { position: absolute; right: -18px; top: -18px; width: 70px; height: 70px; border-radius: 50%; opacity: .14; }
+
+  /* Charts grid */
+  .grid {
+    display: grid; gap: 18px;
+    grid-template-columns: repeat(12, 1fr);
+  }
+  .card {
+    background: var(--card); border-radius: 16px; padding: 18px 20px;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+  }
+  .card h3 { margin: 0 0 4px; font-size: 15px; }
+  .card .desc { color: var(--muted); font-size: 12px; margin: 0 0 14px; }
+  .col-8 { grid-column: span 8; }
+  .col-6 { grid-column: span 6; }
+  .col-4 { grid-column: span 4; }
+  .col-12 { grid-column: span 12; }
+  @media (max-width: 980px) {
+    .col-8, .col-6, .col-4 { grid-column: span 12; }
+  }
+  .chart-box { position: relative; height: 300px; }
+  .chart-box.sm { height: 260px; }
+
+  .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .seg {
+    display: inline-flex; background: #f1f5f9; border-radius: 10px; padding: 4px; gap: 2px;
+  }
+  .seg button {
+    border: none; background: transparent; padding: 7px 14px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer; color: var(--muted);
+  }
+  .seg button.active { background: #fff; color: var(--brand-2); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+
+  /* Gauge center label */
+  .gauge-wrap { position: relative; }
+  .gauge-center {
+    position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
+    text-align: center;
+  }
+  .gauge-center .pct { font-size: 34px; font-weight: 800; }
+  .gauge-center .lbl { font-size: 12px; color: var(--muted); }
+
+  /* Caisse table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .tag { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .tag.green { background: #dcfce7; color: #15803d; }
+  .tag.red { background: #fee2e2; color: #b91c1c; }
+  .tag.gray { background: #f1f5f9; color: #475569; }
+
+  /* Alertes */
+  .alert-list { display: flex; flex-direction: column; gap: 10px; }
+  .alert {
+    display: flex; gap: 12px; padding: 12px 14px; border-radius: 12px;
+    border: 1px solid var(--border); background: #fff;
+  }
+  .alert.critique { border-left: 5px solid var(--red); background: #fef2f2; }
+  .alert.attention { border-left: 5px solid var(--amber); background: #fffbeb; }
+  .alert.info { border-left: 5px solid var(--brand); background: #eff6ff; }
+  .alert .ico { font-size: 18px; line-height: 1; }
+  .alert .body { flex: 1; }
+  .alert .t { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+  .alert .m { font-size: 12px; color: #475569; }
+  .alert .cat { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; }
+
+  .empty { color: var(--muted); font-size: 13px; padding: 18px; text-align: center; }
+  .skel { color: var(--muted); font-size: 13px; padding: 12px; }
+  .refresh-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .err-banner { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; display: none; }
+  footer { color: #94a3b8; text-align: center; font-size: 12px; margin-top: 30px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">CMS</div>
+    <div>
+      <h1>CMSFP — Pilotage budgétaire</h1>
+      <div class="sub">Centre Médico-Social de la Fonction Publique</div>
+    </div>
+  </div>
+  <div class="right">
+    <span id="sessionPill" class="pill">Non connecté</span>
+    <button class="btn ghost" id="refreshBtn" onclick="loadAll()" disabled>↻ Actualiser</button>
+    <button class="btn ghost" id="logoutBtn" onclick="logout()" style="display:none">Déconnexion</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="errBanner" class="err-banner"></div>
+
+  <!-- KPI -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi">
+      <div class="accent" style="background:var(--brand)"></div>
+      <div class="label">Recettes totales</div>
+      <div class="value" id="kpiRecettes">—</div>
+      <div class="hint" id="kpiRecettesHint">paiements encaissés</div>
+    </div>
+    <div class="kpi">
+      <div class="accent" style="background:var(--green)"></div>
+      <div class="label">Consultations</div>
+      <div class="value" id="kpiConsult">—</div>
+      <div class="hint" id="kpiConsultHint">prestations enregistrées</div>
+    </div>
+    <div class="kpi">
+      <div class="accent" style="background:var(--amber)"></div>
+      <div class="label">Budget / Réalisation</div>
+      <div class="value" id="kpiBudget">—</div>
+      <div class="hint" id="kpiBudgetHint">année en cours</div>
+    </div>
+    <div class="kpi">
+      <div class="accent" style="background:var(--red)"></div>
+      <div class="label">État caisse</div>
+      <div class="value" id="kpiCaisse">—</div>
+      <div class="hint" id="kpiCaisseHint">session courante</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="grid">
+    <div class="card col-8">
+      <div class="toolbar" style="justify-content: space-between;">
+        <div>
+          <h3>Évolution des recettes</h3>
+          <p class="desc">Somme des paiements encaissés par période (FCFA)</p>
+        </div>
+        <div class="seg" id="periodeSeg">
+          <button data-p="jour" class="active">Jour</button>
+          <button data-p="semaine">Semaine</button>
+          <button data-p="mois">Mois</button>
+        </div>
+      </div>
+      <div class="chart-box"><canvas id="recettesChart"></canvas></div>
+    </div>
+
+    <div class="card col-4">
+      <h3>Budget vs Recettes</h3>
+      <p class="desc">Taux de réalisation sur l'année</p>
+      <div class="chart-box gauge-wrap sm">
+        <canvas id="budgetChart"></canvas>
+        <div class="gauge-center">
+          <div>
+            <div class="pct" id="budgetPct">—</div>
+            <div class="lbl" id="budgetLbl">réalisation</div>
+          </div>
+        </div>
+      </div>
+      <div id="budgetDetail" class="skel">Chargement…</div>
+    </div>
+
+    <div class="card col-6">
+      <h3>Consultations par type</h3>
+      <p class="desc">Nombre de prestations par catégorie</p>
+      <div class="chart-box sm"><canvas id="consultChart"></canvas></div>
+    </div>
+
+    <div class="card col-6">
+      <h3>Synthèse caisse</h3>
+      <p class="desc">Ouverture, clôture et écarts</p>
+      <div id="caisseBody" class="skel">Chargement…</div>
+    </div>
+
+    <div class="card col-12">
+      <div class="toolbar" style="justify-content: space-between;">
+        <div>
+          <h3>Alertes de pilotage</h3>
+          <p class="desc">Dépassement budget, écarts de caisse, paiements différés</p>
+        </div>
+        <span id="alertCount" class="pill">0 alerte</span>
+      </div>
+      <div id="alertBody" class="skel">Chargement…</div>
+    </div>
+  </div>
+
+  <footer>CMSFP Platform — Tableau de bord de pilotage budgétaire · Montants en FCFA (entiers) · Authentification JWT</footer>
+</div>
+
+<!-- Login overlay -->
+<div class="overlay" id="loginOverlay">
+  <div class="login-card">
+    <h2>Connexion</h2>
+    <p>Authentifiez-vous pour accéder au tableau de bord. (Démo : admin / admin123)</p>
+    <div class="field">
+      <label for="username">Nom d'utilisateur</label>
+      <input id="username" type="text" value="admin" autocomplete="username" />
+    </div>
+    <div class="field">
+      <label for="password">Mot de passe</label>
+      <input id="password" type="password" value="admin123" autocomplete="current-password" />
+    </div>
+    <button class="btn" style="width:100%" onclick="login()">Se connecter</button>
+    <div class="login-msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<script>
+/* ------------------------------------------------------------------ */
+/*  Configuration & état                                              */
+/* ------------------------------------------------------------------ */
+const API_BASE = window.location.origin + "/api/v1";
+let TOKEN = null;
+let charts = {};
+
+const fmtFCFA = n => new Intl.NumberFormat("fr-FR").format(Math.round(n || 0)) + " FCFA";
+const fmtNum  = n => new Intl.NumberFormat("fr-FR").format(Math.round(n || 0));
+
+function showErr(msg) {
+  const b = document.getElementById("errBanner");
+  b.textContent = msg;
+  b.style.display = msg ? "block" : "none";
+}
+
+/* ------------------------------------------------------------------ */
+/*  Authentification                                                  */
+/* ------------------------------------------------------------------ */
+async function login() {
+  const u = document.getElementById("username").value.trim();
+  const p = document.getElementById("password").value;
+  const msg = document.getElementById("loginMsg");
+  msg.textContent = "";
+  try {
+    const form = new URLSearchParams();
+    form.append("username", u);
+    form.append("password", p);
+    const res = await fetch(API_BASE + "/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: form.toString(),
+    });
+    if (!res.ok) {
+      msg.textContent = "Identifiants incorrects (HTTP " + res.status + ")";
+      return;
+    }
+    const data = await res.json();
+    TOKEN = data.access_token;
+    document.getElementById("loginOverlay").classList.add("hidden");
+    document.getElementById("sessionPill").textContent = "Connecté : " + u;
+    document.getElementById("sessionPill").className = "pill ok";
+    document.getElementById("refreshBtn").disabled = false;
+    document.getElementById("logoutBtn").style.display = "inline-block";
+    await loadAll();
+  } catch (e) {
+    msg.textContent = "Erreur réseau : " + e.message;
+  }
+}
+
+function logout() {
+  TOKEN = null;
+  document.getElementById("loginOverlay").classList.remove("hidden");
+  document.getElementById("sessionPill").textContent = "Non connecté";
+  document.getElementById("sessionPill").className = "pill";
+  document.getElementById("refreshBtn").disabled = true;
+  document.getElementById("logoutBtn").style.display = "none";
+}
+
+// Enter key triggers login
+document.getElementById("password").addEventListener("keydown", e => {
+  if (e.key === "Enter") login();
+});
+
+/* ------------------------------------------------------------------ */
+/*  Helper fetch authentifié                                          */
+/* ------------------------------------------------------------------ */
+async function apiGet(path) {
+  const res = await fetch(API_BASE + path, {
+    headers: { Authorization: "Bearer " + TOKEN },
+  });
+  if (res.status === 401) {
+    showErr("Session expirée. Reconnectez-vous.");
+    logout();
+    throw new Error("401");
+  }
+  if (!res.ok) throw new Error("HTTP " + res.status + " sur " + path);
+  return res.json();
+}
+
+async function apiPost(path, body) {
+  const res = await fetch(API_BASE + path, {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + TOKEN,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (res.status === 401) { logout(); throw new Error("401"); }
+  if (!res.ok) throw new Error("HTTP " + res.status + " sur " + path);
+  return res.json();
+}
+
+/* ------------------------------------------------------------------ */
+/*  Chargement global                                                 */
+/* ------------------------------------------------------------------ */
+async function loadAll() {
+  showErr("");
+  try {
+    await Promise.all([
+      loadRecettes(),
+      loadConsultations(),
+      loadBudget(),
+      loadCaisse(),
+      loadAlertes(),
+    ]);
+  } catch (e) {
+    if (e.message !== "401") showErr("Erreur lors du chargement : " + e.message);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Recettes (line chart)                                             */
+/* ------------------------------------------------------------------ */
+let currentPeriode = "jour";
+async function loadRecettes() {
+  const data = await apiGet("/dashboard/recettes?periode=" + currentPeriode);
+
+  document.getElementById("kpiRecettes").textContent = fmtFCFA(data.total_general);
+  document.getElementById("kpiRecettesHint").textContent =
+    data.nombre_paiements + " paiement(s) encaissé(s)";
+
+  const labels = data.series.map(s => s.periode);
+  const totals = data.series.map(s => s.total);
+
+  if (charts.recettes) charts.recettes.destroy();
+  const ctx = document.getElementById("recettesChart").getContext("2d");
+  const grad = ctx.createLinearGradient(0, 0, 0, 300);
+  grad.addColorStop(0, "rgba(14,165,233,.35)");
+  grad.addColorStop(1, "rgba(14,165,233,0)");
+
+  charts.recettes = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels.length ? labels : ["—"],
+      datasets: [{
+        label: "Recettes (FCFA)",
+        data: totals.length ? totals : [0],
+        borderColor: "#0ea5e9",
+        backgroundColor: grad,
+        borderWidth: 2.5,
+        fill: true,
+        tension: .35,
+        pointBackgroundColor: "#2563eb",
+        pointRadius: 3,
+        pointHoverRadius: 6,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => fmtFCFA(c.parsed.y) } },
+      },
+      scales: {
+        y: { beginAtZero: true, ticks: { callback: v => fmtNum(v) } },
+      },
+    },
+  });
+}
+
+document.getElementById("periodeSeg").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-p]");
+  if (!btn) return;
+  document.querySelectorAll("#periodeSeg button").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  currentPeriode = btn.dataset.p;
+  loadRecettes();
+});
+
+/* ------------------------------------------------------------------ */
+/*  Consultations (bar chart)                                         */
+/* ------------------------------------------------------------------ */
+async function loadConsultations() {
+  const data = await apiGet("/dashboard/consultations");
+
+  document.getElementById("kpiConsult").textContent = fmtNum(data.total_consultations);
+  const types = data.par_type.map(t => t.type);
+  document.getElementById("kpiConsultHint").textContent =
+    types.length ? types.join(", ") : "aucune prestation";
+
+  const labels = data.par_type.map(t => t.type);
+  const counts = data.par_type.map(t => t.nombre);
+  const money  = data.par_type.map(t => t.montant_total);
+
+  if (charts.consult) charts.consult.destroy();
+  charts.consult = new Chart(document.getElementById("consultChart").getContext("2d"), {
+    type: "bar",
+    data: {
+      labels: labels.length ? labels : ["—"],
+      datasets: [{
+        label: "Nombre de consultations",
+        data: counts.length ? counts : [0],
+        backgroundColor: [
+          "#2563eb", "#0ea5e9", "#16a34a", "#d97706", "#9333ea", "#dc2626",
+          "#0891b2", "#65a30d",
+        ],
+        borderRadius: 8,
+        maxBarThickness: 60,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: c => "Consultations : " + c.parsed.y,
+            afterLabel: c => "Montant : " + fmtFCFA(money[c.dataIndex]),
+          },
+        },
+      },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+    },
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/*  Budget vs Recettes (gauge doughnut)                               */
+/* ------------------------------------------------------------------ */
+async function loadBudget() {
+  const data = await apiGet("/dashboard/budget");
+
+  const pct = data.budget_alloue > 0 ? data.taux_realisation : 0;
+  const capped = Math.min(pct, 100);
+  const over = pct > 100 ? pct - 100 : 0;
+
+  document.getElementById("budgetPct").textContent = (data.budget_alloue > 0 ? pct.toFixed(1) : "—") + "%";
+  document.getElementById("budgetLbl").textContent =
+    data.budget_defini ? "réalisation " + data.annee : "budget non défini";
+  document.getElementById("kpiBudget").textContent =
+    data.budget_defini ? pct.toFixed(0) + "%" : "N/D";
+  document.getElementById("kpiBudgetHint").textContent =
+    data.budget_defini ? ("Budget " + fmtNum(data.budget_alloue) + " FCFA") : "aucun budget défini";
+
+  let detail = "";
+  if (data.budget_defini) {
+    const depColor = data.depassement ? "#dc2626" : "#16a34a";
+    detail =
+      "<table>" +
+      "<tr><th>Budget alloué</th><td class='num'>" + fmtFCFA(data.budget_alloue) + "</td></tr>" +
+      "<tr><th>Recettes cumulées</th><td class='num'>" + fmtFCFA(data.recettes_cumulees) + "</td></tr>" +
+      "<tr><th>Écart</th><td class='num' style='color:" + depColor + ";font-weight:700'>" +
+      (data.ecart >= 0 ? "+" : "") + fmtNum(data.ecart) + " FCFA</td></tr>" +
+      "</table>";
+  } else {
+    detail = "<div class='empty'>Aucun budget défini pour " + data.annee +
+      ". Définissez-en un via <code>POST /api/v1/dashboard/budget</code>.</div>";
+  }
+  document.getElementById("budgetDetail").innerHTML = detail;
+
+  if (charts.budget) charts.budget.destroy();
+  const remain = Math.max(100 - capped, 0);
+  charts.budget = new Chart(document.getElementById("budgetChart").getContext("2d"), {
+    type: "doughnut",
+    data: {
+      labels: ["Réalisé", "Restant"],
+      datasets: [{
+        data: data.budget_alloue > 0 ? [capped, remain] : [0, 100],
+        backgroundColor: [
+          data.depassement ? "#dc2626" : "#16a34a",
+          "#e2e8f0",
+        ],
+        borderWidth: 0,
+        cutout: "72%",
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: data.budget_alloue > 0 } },
+    },
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/*  Caisse (synthèse)                                                 */
+/* ------------------------------------------------------------------ */
+async function loadCaisse() {
+  const data = await apiGet("/dashboard/caisse");
+
+  const stateText = data.session_ouverte ? "Ouverte" : (data.derniere_cloture ? "Clôturée" : "Inactive");
+  const stateTag = data.session_ouverte
+    ? "<span class='tag green'>Ouverte</span>"
+    : "<span class='tag gray'>" + (data.derniere_cloture ? "Clôturée" : "Inactive") + "</span>";
+  document.getElementById("kpiCaisse").innerHTML = stateTag;
+  document.getElementById("kpiCaisseHint").textContent =
+    data.operations_cumul + " opération(s) · " + (data.integrite_journal ? "journal intègre" : "journal altéré");
+
+  let html = "<table>";
+  html += "<tr><th>État session</th><td>" + stateTag + "</td></tr>";
+  html += "<tr><th>Fond d'ouverture</th><td class='num'>" +
+    (data.montant_ouverture != null ? fmtFCFA(data.montant_ouverture) : "—") + "</td></tr>";
+  html += "<tr><th>Montant théorique</th><td class='num'>" +
+    (data.montant_theorique != null ? fmtFCFA(data.montant_theorique) : "—") + "</td></tr>";
+  html += "<tr><th>Opérations cumulées</th><td class='num'>" + data.operations_cumul + "</td></tr>";
+  html += "<tr><th>Encaissé (session)</th><td class='num'>" + fmtFCFA(data.total_encaisse_session) + "</td></tr>";
+  html += "<tr><th>Remboursé (session)</th><td class='num'>" + fmtFCFA(data.total_rembourse_session) + "</td></tr>";
+
+  if (data.derniere_cloture) {
+    const e = data.derniere_cloture.ecart;
+    const eColor = e === 0 ? "#16a34a" : (Math.abs(e) >= 1000 ? "#dc2626" : "#d97706");
+    html += "<tr><th>Dernière clôture</th><td class='num'>" +
+      (data.derniere_cloture.montant_cloture != null ? fmtFCFA(data.derniere_cloture.montant_cloture) : "—") + "</td></tr>";
+    html += "<tr><th>Écart clôture</th><td class='num' style='color:" + eColor + ";font-weight:700'>" +
+      (e >= 0 ? "+" : "") + fmtNum(e) + " FCFA</td></tr>";
+  }
+  html += "<tr><th>Intégrité journal</th><td>" +
+    (data.integrite_journal
+      ? "<span class='tag green'>Intègre</span>"
+      : "<span class='tag red'>" + data.total_anomalies + " anomalie(s)</span>") + "</td></tr>";
+  html += "</table>";
+
+  if (data.clotures_recentes.length) {
+    html += "<h3 style='margin-top:16px;font-size:13px'>Clôtures récentes</h3><table>";
+    html += "<tr><th>Date</th><th class='num'>Clôture</th><th class='num'>Théorique</th><th class='num'>Écart</th></tr>";
+    data.clotures_recentes.forEach(c => {
+      const ec = c.ecart;
+      const ecTag = ec === 0 ? "green" : (Math.abs(ec) >= 1000 ? "red" : "gray");
+      html += "<tr><td>" + new Date(c.horodatage).toLocaleString("fr-FR") + "</td>" +
+        "<td class='num'>" + (c.montant_cloture != null ? fmtNum(c.montant_cloture) : "—") + "</td>" +
+        "<td class='num'>" + (c.montant_theorique != null ? fmtNum(c.montant_theorique) : "—") + "</td>" +
+        "<td class='num'><span class='tag " + ecTag + "'>" + (ec >= 0 ? "+" : "") + fmtNum(ec) + "</span></td></tr>";
+    });
+    html += "</table>";
+  }
+  document.getElementById("caisseBody").innerHTML = html;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Alertes (liste)                                                   */
+/* ------------------------------------------------------------------ */
+async function loadAlertes() {
+  const data = await apiGet("/dashboard/alertes");
+  document.getElementById("alertCount").textContent =
+    data.total + " alerte" + (data.total > 1 ? "s" : "");
+
+  const icons = { critique: "🚨", attention: "⚠️", info: "ℹ️" };
+  if (!data.alertes.length) {
+    document.getElementById("alertBody").innerHTML =
+      "<div class='empty'>✅ Aucune alerte. Tout est sous contrôle.</div>";
+    return;
+  }
+  let html = "<div class='alert-list'>";
+  data.alertes.forEach(a => {
+    html +=
+      "<div class='alert " + a.niveau + "'>" +
+        "<div class='ico'>" + (icons[a.niveau] || "•") + "</div>" +
+        "<div class='body'>" +
+          "<div class='t'>" + a.titre + " <span class='cat'>· " + a.categorie + "</span></div>" +
+          "<div class='m'>" + a.message + "</div>" +
+        "</div>" +
+      "</div>";
+  });
+  html += "</div>";
+  document.getElementById("alertBody").innerHTML = html;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+# =====================================================================
+# Dépendances CMSFP Platform — versions figées (OWASP A06)
+# =====================================================================
+# Les versions sont figées avec >= vers des versions minimales connues
+# comme sûres (audit de sécurité 2026-06-26). En production, envisager
+# un fichier requirements.lock avec des versions exactes (==).
+# =====================================================================
+
+# --- Framework web ---
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+starlette>=0.41.0
+
+# --- Base de données ---
+sqlalchemy>=2.0.36
+aiosqlite>=0.20.0
+
+# --- Authentification / sécurité ---
+python-jose[cryptography]>=3.4.0      # JWT (HS256) — ≥3.4 corrige CVE-2024-33664 (alg confusion)
+bcrypt>=4.2.0                         # Hachage mots de passe — ≥4.2 (passlib abandonné, bcrypt direct)
+python-multipart>=0.0.18              # Parsing form-data (login + uploads)
+slowapi>=0.1.9                        # Rate limiting (A01 — protection brute-force /login)
+
+# --- Validation ---
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
+
+# --- QR codes ---
+qrcode[pil]>=7.4.4
+
+# --- IA Audio (Défi 5) — STT/TTS/résumé réunions ---
+openai>=1.50.0
+faster-whisper>=1.0.3
+edge-tts>=6.1.19
+
+# --- Test ---
+pytest>=8.3.0
+httpx>=0.27.0

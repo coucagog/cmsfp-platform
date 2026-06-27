@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environnement
+.env
+.env.*
+!.env.example
+venv/
+.venv/
+
+# Base de données (SQLite - dev only)
+*.db
+*.db.bak
+*.db.bak.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Tests
+.pytest_cache/
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Migrations (à exclure si auto-générées par Alembic)
+migrations/versions/*.pyc
+
+# Rapports générés
+docs/*.pdf
+docs/*.docx
