@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CMSFP — Administration</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --bg-2: #1e293b;
+    --card: #ffffff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --brand: #0ea5e9;
+    --brand-2: #2563eb;
+    --green: #16a34a;
+    --amber: #d97706;
+    --red: #dc2626;
+    --border: #e2e8f0;
+    --shadow: 0 10px 30px rgba(2, 6, 23, .12);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* --- Topbar --- */
+  .topbar {
+    background: rgba(15, 23, 42, .9);
+    backdrop-filter: blur(6px);
+    color: #fff;
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .topbar .brand { display: flex; align-items: center; gap: 12px; }
+  .topbar .logo {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    display: grid; place-items: center; font-weight: 800; color: #fff;
+    box-shadow: 0 6px 18px rgba(14,165,233,.45);
+  }
+  .topbar h1 { font-size: 18px; margin: 0; font-weight: 700; }
+  .topbar .sub { font-size: 12px; color: #94a3b8; }
+  .topbar .right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .pill {
+    background: rgba(255,255,255,.08);
+    color: #cbd5e1;
+    border: 1px solid rgba(255,255,255,.12);
+    padding: 6px 12px; border-radius: 999px; font-size: 12px;
+  }
+  .pill.ok { background: rgba(22,163,74,.18); color: #bbf7d0; border-color: rgba(22,163,74,.4); }
+  .pill.bad { background: rgba(220,38,38,.18); color: #fecaca; border-color: rgba(220,38,38,.4); }
+  .pill.warn { background: rgba(217,119,6,.18); color: #fde68a; border-color: rgba(217,119,6,.4); }
+  button.btn {
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff; border: none; border-radius: 10px;
+    padding: 9px 16px; font-weight: 600; cursor: pointer; font-size: 13px;
+    box-shadow: 0 6px 16px rgba(37,99,235,.35);
+    transition: transform .08s ease, opacity .2s ease;
+  }
+  button.btn:hover { transform: translateY(-1px); }
+  button.btn:active { transform: translateY(0); }
+  button.btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  button.btn.ghost {
+    background: rgba(255,255,255,.08); color: #e2e8f0;
+    box-shadow: none; border: 1px solid rgba(255,255,255,.15);
+  }
+  button.btn.danger {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    box-shadow: 0 6px 16px rgba(220,38,38,.35);
+  }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* --- Layout --- */
+  .kpi-grid {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    margin-bottom: 22px;
+  }
+  .kpi {
+    background: var(--card); border-radius: 16px; padding: 18px 20px;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+    position: relative; overflow: hidden;
+  }
+  .kpi .label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .kpi .value { font-size: 26px; font-weight: 800; margin-top: 6px; }
+  .kpi .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .kpi .accent { position: absolute; right: -18px; top: -18px; width: 70px; height: 70px; border-radius: 50%; opacity: .14; }
+
+  .grid { display: grid; gap: 18px; grid-template-columns: repeat(12, 1fr); }
+  .card {
+    background: var(--card); border-radius: 16px; padding: 18px 20px;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+  }
+  .card h3 { margin: 0 0 4px; font-size: 15px; }
+  .card .desc { color: var(--muted); font-size: 12px; margin: 0 0 14px; }
+  .col-8 { grid-column: span 8; }
+  .col-6 { grid-column: span 6; }
+  .col-4 { grid-column: span 4; }
+  .col-12 { grid-column: span 12; }
+  @media (max-width: 980px) {
+    .col-8, .col-6, .col-4 { grid-column: span 12; }
+  }
+
+  /* --- Tables --- */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .tag { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .tag.green { background: #dcfce7; color: #15803d; }
+  .tag.red { background: #fee2e2; color: #b91c1c; }
+  .tag.gray { background: #f1f5f9; color: #475569; }
+  .tag.blue { background: #dbeafe; color: #1d4ed8; }
+  .tag.amber { background: #fef3c7; color: #b45309; }
+
+  /* --- Forms --- */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .field input, .field select {
+    width: 100%; padding: 11px 13px; border: 1px solid var(--border);
+    border-radius: 10px; font-size: 14px; outline: none; background: #fff;
+  }
+  .field input:focus, .field select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(14,165,233,.15); }
+  .form-msg { font-size: 13px; min-height: 18px; margin-top: 8px; }
+  .form-msg.ok { color: var(--green); }
+  .form-msg.err { color: var(--red); }
+  .form-msg.info { color: var(--muted); }
+
+  /* --- Info rows --- */
+  .info-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .k { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .info-row .v { font-size: 13px; font-weight: 600; text-align: right; word-break: break-all; }
+  .mono { font-family: 'SF Mono', 'Consolas', 'Menlo', monospace; font-size: 12px; }
+
+  /* --- Alerts / notes --- */
+  .note {
+    display: flex; gap: 12px; padding: 12px 14px; border-radius: 12px;
+    border: 1px solid var(--border); background: #f8fafc; font-size: 13px; color: #475569;
+  }
+  .note.info { border-left: 5px solid var(--brand); background: #eff6ff; }
+  .note.warn { border-left: 5px solid var(--amber); background: #fffbeb; }
+  .note.err  { border-left: 5px solid var(--red); background: #fef2f2; }
+  .note.ok   { border-left: 5px solid var(--green); background: #f0fdf4; }
+  .note .ico { font-size: 18px; line-height: 1.2; }
+  .note .body { flex: 1; }
+  .note .body strong { color: var(--ink); }
+
+  /* --- Nav tiles --- */
+  .nav-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  .nav-tile {
+    display: flex; flex-direction: column; gap: 4px; padding: 16px;
+    border: 1px solid var(--border); border-radius: 12px; text-decoration: none;
+    color: var(--ink); background: #fff; transition: border-color .15s, box-shadow .15s, transform .08s;
+  }
+  .nav-tile:hover { border-color: var(--brand); box-shadow: 0 6px 16px rgba(14,165,233,.18); transform: translateY(-2px); }
+  .nav-tile .nt-ico { font-size: 22px; }
+  .nav-tile .nt-t { font-weight: 700; font-size: 14px; }
+  .nav-tile .nt-d { font-size: 12px; color: var(--muted); }
+
+  /* --- Banner --- */
+  .err-banner { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; display: none; }
+  .access-block {
+    position: fixed; inset: 0; background: rgba(2,6,23,.75); backdrop-filter: blur(4px);
+    display: grid; place-items: center; z-index: 60;
+  }
+  .access-block.hidden { display: none; }
+  .access-card { background: var(--card); border-radius: 18px; padding: 30px; width: min(460px, 92vw); box-shadow: var(--shadow); text-align: center; }
+  .access-card .big-ico { font-size: 44px; margin-bottom: 10px; }
+  .access-card h2 { margin: 0 0 8px; font-size: 20px; }
+  .access-card p { margin: 0 0 20px; color: var(--muted); font-size: 13px; }
+
+  footer { color: #94a3b8; text-align: center; font-size: 12px; margin-top: 30px; }
+  .muted { color: var(--muted); }
+  .skel { color: var(--muted); font-size: 13px; padding: 12px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">CMS</div>
+    <div>
+      <h1>CMSFP — Administration</h1>
+      <div class="sub">Centre Médico-Social de la Fonction Publique · Console d'administration</div>
+    </div>
+  </div>
+  <div class="right">
+    <span id="sessionPill" class="pill">Vérification de session…</span>
+    <button class="btn ghost" id="refreshBtn" onclick="refreshSession()" disabled>↻ Renouveler le jeton</button>
+    <a class="btn ghost" href="/dashboard" style="text-decoration:none">← Tableau de bord</a>
+    <button class="btn danger" id="logoutBtn" onclick="logout()" style="display:none">Déconnexion</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="errBanner" class="err-banner"></div>
+
+  <!-- Accès refusé (rôle non admin) -->
+  <div class="access-block hidden" id="accessBlock">
+    <div class="access-card">
+      <div class="big-ico">⛔</div>
+      <h2>Accès réservé aux administrateurs</h2>
+      <p id="accessMsg">Cette console est réservée au rôle <strong>admin</strong>. Votre rôle actuel est <strong><span id="accessRole">—</span></strong>.</p>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        <a class="btn" href="/dashboard">Aller au tableau de bord</a>
+        <button class="btn ghost" onclick="logout()">Changer de compte</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI session -->
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="accent" style="background:var(--brand)"></div>
+      <div class="label">Utilisateur connecté</div>
+      <div class="value" id="kpiUser">—</div>
+      <div class="hint" id="kpiUserHint">session JWT</div>
+    </div>
+    <div class="kpi">
+      <div class="accent" style="background:var(--green)"></div>
+      <div class="label">Rôle</div>
+      <div class="value" id="kpiRole">—</div>
+      <div class="hint" id="kpiRoleHint">contrôle d'accès RBAC</div>
+    </div>
+    <div class="kpi">
+      <div class="accent" style="background:var(--amber)"></div>
+      <div class="label">Jeton expire dans</div>
+      <div class="value" id="kpiExpiry">—</div>
+      <div class="hint" id="kpiExpiryHint">access token</div>
+    </div>
+    <div class="kpi">
+      <div class="accent" style="background:var(--red)"></div>
+      <div class="label">Statut du jeton</div>
+      <div class="value" id="kpiStatus">—</div>
+      <div class="hint" id="kpiStatusHint">vérification locale</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Comptes & rôles -->
+    <div class="card col-8">
+      <h3>Comptes & rôles</h3>
+      <p class="desc">Rôles conventionnels du RBAC (OWASP A01) et compte de session courant.</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Rôle</th>
+            <th>Description</th>
+            <th>Périmètre d'accès</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="tag blue">admin</span></td>
+            <td>Administrateur de la plateforme</td>
+            <td>Tous les modules · console d'administration</td>
+            <td><span class="tag green">Actif</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag green">comptable</span></td>
+            <td>Gestion financière (paiements, caisse, budget)</td>
+            <td>Paiements · Caisse · Tarifs · Tableau de bord</td>
+            <td><span class="tag gray">Disponible</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag amber">medecin</span></td>
+            <td>Soins (fiches patients, consultations, dictée audio)</td>
+            <td>Fiche patient · Consultations · Conseil santé</td>
+            <td><span class="tag gray">Disponible</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div id="accountsNote" style="margin-top:14px"></div>
+    </div>
+
+    <!-- Création de compte -->
+    <div class="card col-4">
+      <h3>Créer un compte</h3>
+      <p class="desc">Nouvel utilisateur (nécessite un endpoint backend).</p>
+      <div class="field">
+        <label for="newUsername">Nom d'utilisateur</label>
+        <input id="newUsername" type="text" placeholder="ex. dupont" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="newPassword">Mot de passe</label>
+        <input id="newPassword" type="password" placeholder="••••••••" autocomplete="new-password" />
+      </div>
+      <div class="field">
+        <label for="newRole">Rôle</label>
+        <select id="newRole">
+          <option value="admin">admin</option>
+          <option value="comptable" selected>comptable</option>
+          <option value="medecin">medecin</option>
+        </select>
+      </div>
+      <button class="btn" style="width:100%" onclick="createAccount()">＋ Créer le compte</button>
+      <div class="form-msg info" id="createMsg">La création nécessite l'endpoint POST /api/v1/users (backend).</div>
+    </div>
+
+    <!-- Paramètres de sécurité -->
+    <div class="card col-6">
+      <h3>Paramètres de sécurité</h3>
+      <p class="desc">Posture de sécurité de la plateforme (lecture seule — configurée côté serveur).</p>
+
+      <div class="info-row"><span class="k">Durée access token</span><span class="v" id="secAccessTtl">60 minutes</span></div>
+      <div class="info-row"><span class="k">Durée refresh token</span><span class="v" id="secRefreshTtl">7 jours</span></div>
+      <div class="info-row"><span class="k">Algorithme de signature</span><span class="v">HS256</span></div>
+      <div class="info-row"><span class="k">Rate limiting /login</span><span class="v">5 / minute / IP</span></div>
+      <div class="info-row"><span class="k">Vérification signature</span><span class="v"><span class="tag green">Activée</span></span></div>
+      <div class="info-row"><span class="k">Algorithme « none »</span><span class="v"><span class="tag red">Refusé</span></span></div>
+      <div class="info-row"><span class="k">Type de token requis</span><span class="v">access</span></div>
+      <div class="info-row"><span class="k">Hachage mots de passe</span><span class="v">bcrypt</span></div>
+      <div class="info-row"><span class="k">Audit des logins</span><span class="v"><span class="tag green">Activé</span> (A09)</span></div>
+      <div class="info-row"><span class="k">Headers de sécurité</span><span class="v"><span class="tag green">Activés</span> (A05)</span></div>
+
+      <div class="note info" style="margin-top:14px">
+        <span class="ico">🛡️</span>
+        <span class="body">Ces valeurs reflètent la configuration serveur (<strong>core/config.py</strong>). Les durées réelles des tokens de votre session sont calculées depuis le JWT décodé. Les credentials de l'administrateur de bootstrap proviennent exclusivement des variables d'environnement (.env) — aucun mot de passe n'est codé en dur.</span>
+      </div>
+    </div>
+
+    <!-- Logs de connexion -->
+    <div class="card col-6">
+      <h3>Logs de connexion</h3>
+      <p class="desc">Journalisation des tentatives d'authentification (OWASP A09).</p>
+
+      <div class="note warn">
+        <span class="ico">📜</span>
+        <span class="body">Les logs d'audit (login succès/échec, IP client) sont écrits sur la <strong>sortie standard du serveur</strong> via le logger <span class="mono">cmsfp.audit</span>. Aucun endpoint HTTP n'expose actuellement ces journaux — leur consultation se fait côté infrastructure (journalisation serveur).</span>
+      </div>
+
+      <h3 style="margin-top:18px">Détails de votre session courante</h3>
+      <p class="desc">Informations décodées localement depuis votre access token.</p>
+      <div class="info-row"><span class="k">Utilisateur (sub)</span><span class="v mono" id="logSub">—</span></div>
+      <div class="info-row"><span class="k">Rôle</span><span class="v mono" id="logRole">—</span></div>
+      <div class="info-row"><span class="k">Type de jeton</span><span class="v mono" id="logType">—</span></div>
+      <div class="info-row"><span class="k">Émis le (iat)</span><span class="v" id="logIat">—</span></div>
+      <div class="info-row"><span class="k">Expire le (exp)</span><span class="v" id="logExp">—</span></div>
+      <div class="info-row"><span class="k">Refresh token stocké</span><span class="v" id="logRefresh">—</span></div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="card col-12">
+      <h3>Navigation de la plateforme</h3>
+      <p class="desc">Accès rapide aux modules de CMSFP Platform.</p>
+      <div class="nav-grid">
+        <a class="nav-tile" href="/dashboard"><span class="nt-ico">📊</span><span class="nt-t">Tableau de bord</span><span class="nt-d">Pilotage budgétaire & KPI</span></a>
+        <a class="nav-tile" href="/fiche-patient"><span class="nt-ico">🩺</span><span class="nt-t">Fiche patient</span><span class="nt-d">Consultation & édition</span></a>
+        <a class="nav-tile" href="/tarifs"><span class="nt-ico">🏷️</span><span class="nt-t">Tarifs</span><span class="nt-d">Règles tarifaires</span></a>
+        <a class="nav-tile" href="/caisse"><span class="nt-ico">💵</span><span class="nt-t">Caisse</span><span class="nt-d">Caisse traçable</span></a>
+        <a class="nav-tile" href="/paiements"><span class="nt-ico">🧾</span><span class="nt-t">Paiements</span><span class="nt-d">Gestion des encaissements</span></a>
+      </div>
+    </div>
+  </div>
+
+  <footer>CMSFP Platform — Console d'administration · Authentification JWT (HS256) · RBAC (admin / comptable / medecin) · OWASP Top 10</footer>
+</div>
+
+<script>
+/* ------------------------------------------------------------------ */
+/*  Configuration & état                                              */
+/* ------------------------------------------------------------------ */
+const API_BASE = window.location.origin + "/api/v1";
+let TOKEN = null;
+let expiryTimer = null;
+
+function showErr(msg) {
+  const b = document.getElementById("errBanner");
+  b.textContent = msg;
+  b.style.display = msg ? "block" : "none";
+}
+
+/* ------------------------------------------------------------------ */
+/*  Décodage du JWT (côté client — payload uniquement)                */
+/* ------------------------------------------------------------------ */
+function decodeJwt(token) {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    let payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    // rembourrage base64
+    while (payload.length % 4) payload += "=";
+    return JSON.parse(atob(payload));
+  } catch (e) {
+    return null;
+  }
+}
+
+function fmtDateTime(secs) {
+  if (!secs) return "—";
+  const d = new Date(secs * 1000);
+  return d.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "medium" });
+}
+
+function fmtCountdown(ms) {
+  if (ms <= 0) return "Expiré";
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return h + "h " + m + "m";
+  if (m > 0) return m + "m " + sec + "s";
+  return sec + "s";
+}
+
+/* ------------------------------------------------------------------ */
+/*  Redirection vers /dashboard (session absente / 401)               */
+/* ------------------------------------------------------------------ */
+function redirectToDashboard(reason) {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  // Petit délai pour laisser un message éventuel, puis redirection.
+  if (reason) showErr(reason + " Redirection vers la connexion…");
+  setTimeout(() => { window.location.href = "/dashboard"; }, 1200);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Affichage des infos de session depuis le JWT                       */
+/* ------------------------------------------------------------------ */
+function renderSession(payload) {
+  const now = Date.now();
+  const expMs = payload && payload.exp ? payload.exp * 1000 : null;
+  const username = payload && payload.sub ? payload.sub : "—";
+  const role = payload && payload.role ? payload.role : "—";
+  const tokenType = payload && payload.type ? payload.type : "—";
+
+  // KPIs
+  document.getElementById("kpiUser").textContent = username;
+  document.getElementById("kpiUserHint").textContent = "session JWT (sub)";
+  document.getElementById("kpiRole").textContent = role;
+  document.getElementById("kpiRoleHint").textContent = "contrôle d'accès RBAC";
+
+  // Logs / détails
+  document.getElementById("logSub").textContent = username;
+  document.getElementById("logRole").textContent = role;
+  document.getElementById("logType").textContent = tokenType;
+  document.getElementById("logIat").textContent = payload && payload.iat ? fmtDateTime(payload.iat) : "non présent";
+  document.getElementById("logExp").textContent = expMs ? fmtDateTime(payload.exp) : "—";
+  document.getElementById("logRefresh").textContent = localStorage.getItem("refresh_token") ? "Oui (localStorage)" : "Non";
+
+  // Statut + compte à rebours
+  updateExpiry();
+
+  // Pills
+  const pill = document.getElementById("sessionPill");
+  pill.textContent = "Connecté : " + username + " (" + role + ")";
+  pill.className = "pill ok";
+
+  document.getElementById("logoutBtn").style.display = "inline-block";
+  document.getElementById("refreshBtn").disabled = !localStorage.getItem("refresh_token");
+
+  // Contrôle d'accès : réservé au rôle admin.
+  // Le <span id="accessRole"> reçoit le rôle via textContent (pas innerHTML) —
+  // pas d'injection possible même si le claim venait à contenir du HTML.
+  if (role !== "admin") {
+    document.getElementById("accessRole").textContent = role;
+    document.getElementById("accessBlock").classList.remove("hidden");
+  } else {
+    document.getElementById("accessBlock").classList.add("hidden");
+  }
+}
+
+function updateExpiry() {
+  if (!TOKEN) return;
+  const payload = decodeJwt(TOKEN);
+  if (!payload || !payload.exp) {
+    document.getElementById("kpiExpiry").textContent = "—";
+    document.getElementById("kpiStatus").textContent = "Inconnu";
+    document.getElementById("kpiStatus").className = "";
+    return;
+  }
+  const remaining = payload.exp * 1000 - Date.now();
+  const el = document.getElementById("kpiExpiry");
+  const st = document.getElementById("kpiStatus");
+  const stHint = document.getElementById("kpiStatusHint");
+
+  if (remaining <= 0) {
+    el.textContent = "Expiré";
+    el.style.color = "var(--red)";
+    st.textContent = "Expiré";
+    st.style.color = "var(--red)";
+    stHint.textContent = "renouvelez ou reconnectez-vous";
+  } else if (remaining < 5 * 60 * 1000) {
+    el.textContent = fmtCountdown(remaining);
+    el.style.color = "var(--amber)";
+    st.textContent = "Expire bientôt";
+    st.style.color = "var(--amber)";
+    stHint.textContent = "renouvellement conseillé";
+  } else {
+    el.textContent = fmtCountdown(remaining);
+    el.style.color = "";
+    st.textContent = "Valide";
+    st.style.color = "var(--green)";
+    stHint.textContent = "signature vérifiée côté serveur";
+  }
+}
+
+function startExpiryTimer() {
+  if (expiryTimer) clearInterval(expiryTimer);
+  expiryTimer = setInterval(updateExpiry, 1000);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Authentification : restauration de session                          */
+/* ------------------------------------------------------------------ */
+function initSession() {
+  const saved = localStorage.getItem("access_token");
+  if (!saved) {
+    redirectToDashboard("Aucune session active.");
+    return;
+  }
+  TOKEN = saved;
+
+  // Un refresh token ne doit pas servir à authentifier les endpoints.
+  const payload = decodeJwt(TOKEN);
+  if (!payload) {
+    redirectToDashboard("Jeton illisible.");
+    return;
+  }
+  if (payload.type === "refresh") {
+    redirectToDashboard("Mauvais type de jeton.");
+    return;
+  }
+
+  // Vérification locale d'expiration (la vraie vérification est serveur).
+  if (payload.exp && payload.exp * 1000 <= Date.now()) {
+    // Tente un renouvellement automatique si un refresh token existe.
+    const rt = localStorage.getItem("refresh_token");
+    if (rt) {
+      autoRefresh(rt);
+      return;
+    }
+    redirectToDashboard("Session expirée.");
+    return;
+  }
+
+  renderSession(payload);
+  startExpiryTimer();
+}
+
+async function autoRefresh(refreshToken) {
+  try {
+    const res = await fetch(API_BASE + "/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    TOKEN = data.access_token;
+    localStorage.setItem("access_token", TOKEN);
+    if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
+    const payload = decodeJwt(TOKEN);
+    renderSession(payload);
+    startExpiryTimer();
+    showErr("");
+  } catch (e) {
+    redirectToDashboard("Session expirée et renouvellement impossible.");
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Renouvellement manuel du jeton                                      */
+/* ------------------------------------------------------------------ */
+async function refreshSession() {
+  const rt = localStorage.getItem("refresh_token");
+  if (!rt) {
+    showErr("Aucun refresh token stocké — reconnectez-vous via /dashboard pour activer le renouvellement.");
+    return;
+  }
+  const btn = document.getElementById("refreshBtn");
+  btn.disabled = true;
+  btn.textContent = "Renouvellement…";
+  try {
+    const res = await fetch(API_BASE + "/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: rt }),
+    });
+    if (res.status === 401) {
+      redirectToDashboard("Refresh token invalide ou expiré.");
+      return;
+    }
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    TOKEN = data.access_token;
+    localStorage.setItem("access_token", TOKEN);
+    if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
+    const payload = decodeJwt(TOKEN);
+    renderSession(payload);
+    startExpiryTimer();
+    showErr("");
+    document.getElementById("logRefresh").textContent = localStorage.getItem("refresh_token") ? "Oui (localStorage)" : "Non";
+  } catch (e) {
+    showErr("Erreur de renouvellement : " + e.message);
+  } finally {
+    btn.textContent = "↻ Renouveler le jeton";
+    btn.disabled = !localStorage.getItem("refresh_token");
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Déconnexion                                                         */
+/* ------------------------------------------------------------------ */
+function logout() {
+  TOKEN = null;
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  window.location.href = "/dashboard";
+}
+
+/* ------------------------------------------------------------------ */
+/*  Création de compte (endpoint backend non implémenté)               */
+/* ------------------------------------------------------------------ */
+async function createAccount() {
+  const u = document.getElementById("newUsername").value.trim();
+  const p = document.getElementById("newPassword").value;
+  const r = document.getElementById("newRole").value;
+  const msg = document.getElementById("createMsg");
+
+  if (!u || !p) {
+    msg.className = "form-msg err";
+    msg.textContent = "Veuillez renseigner un nom d'utilisateur et un mot de passe.";
+    return;
+  }
+  if (p.length < 8) {
+    msg.className = "form-msg err";
+    msg.textContent = "Le mot de passe doit comporter au moins 8 caractères.";
+    return;
+  }
+
+  msg.className = "form-msg info";
+  msg.textContent = "Tentative de création…";
+
+  try {
+    const res = await fetch(API_BASE + "/users", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + TOKEN,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username: u, password: p, role: r }),
+    });
+
+    if (res.status === 401) {
+      redirectToDashboard("Session expirée.");
+      return;
+    }
+    if (res.status === 404) {
+      msg.className = "form-msg err";
+      msg.textContent = "Endpoint POST /api/v1/users introuvable (404). La gestion CRUD des utilisateurs n'est pas encore implémentée côté backend — seul le compte administrateur de bootstrap existe (configuré via .env).";
+      return;
+    }
+    if (res.status === 403) {
+      msg.className = "form-msg err";
+      msg.textContent = "Accès refusé (403) : privilèges administrateur requis.";
+      return;
+    }
+    if (!res.ok) {
+      msg.className = "form-msg err";
+      msg.textContent = "Échec (HTTP " + res.status + ") : " + (await res.text());
+      return;
+    }
+    const data = await res.json();
+    msg.className = "form-msg ok";
+    msg.textContent = "Compte créé : " + (data.username || u) + " (" + r + ").";
+    document.getElementById("newUsername").value = "";
+    document.getElementById("newPassword").value = "";
+  } catch (e) {
+    msg.className = "form-msg err";
+    msg.textContent = "Erreur réseau : " + e.message;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Note sur les comptes (backend)                                     */
+/* ------------------------------------------------------------------ */
+(function renderAccountsNote() {
+  const el = document.getElementById("accountsNote");
+  el.innerHTML =
+    '<div class="note info">' +
+      '<span class="ico">ℹ️</span>' +
+      '<span class="body"><strong>État du backend :</strong> aucun endpoint CRUD utilisateurs n\'est implémenté ' +
+      'dans <span class="mono">app/api/auth.py</span> (seuls <span class="mono">POST /login</span> et ' +
+      '<span class="mono">POST /refresh</span> existent). Le magasin d\'utilisateurs est en mémoire et contient ' +
+      'uniquement l\'administrateur de bootstrap (credentials issus des variables d\'environnement). ' +
+      'La création / modification / suppression de comptes nécessite l\'ajout d\'un endpoint ' +
+      '<span class="mono">/api/v1/users</span> protégé par <span class="mono">require_role({"admin"})</span>.</span>' +
+    '</div>';
+})();
+
+/* ------------------------------------------------------------------ */
+/*  Démarrage                                                          */
+/* ------------------------------------------------------------------ */
+initSession();
+</script>
+
+</body>
+</html>

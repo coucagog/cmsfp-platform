@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CMSFP — Tarifs &amp; Règles tarifaires</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --bg-2: #1e293b;
+    --card: #ffffff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --brand: #0ea5e9;
+    --brand-2: #2563eb;
+    --green: #16a34a;
+    --amber: #d97706;
+    --red: #dc2626;
+    --border: #e2e8f0;
+    --shadow: 0 10px 30px rgba(2, 6, 23, .12);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ---- Topbar (identique au dashboard) ---- */
+  .topbar {
+    background: rgba(15, 23, 42, .9);
+    backdrop-filter: blur(6px);
+    color: #fff;
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .topbar .brand { display: flex; align-items: center; gap: 12px; }
+  .topbar .logo {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    display: grid; place-items: center; font-weight: 800; color: #fff;
+    box-shadow: 0 6px 18px rgba(14,165,233,.45);
+  }
+  .topbar h1 { font-size: 18px; margin: 0; font-weight: 700; }
+  .topbar .sub { font-size: 12px; color: #94a3b8; }
+  .topbar .right { display: flex; align-items: center; gap: 14px; }
+  .pill {
+    background: rgba(255,255,255,.08);
+    color: #cbd5e1;
+    border: 1px solid rgba(255,255,255,.12);
+    padding: 6px 12px; border-radius: 999px; font-size: 12px;
+  }
+  .pill.ok { background: rgba(22,163,74,.18); color: #bbf7d0; border-color: rgba(22,163,74,.4); }
+  .pill.bad { background: rgba(220,38,38,.18); color: #fecaca; border-color: rgba(220,38,38,.4); }
+  button.btn {
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff; border: none; border-radius: 10px;
+    padding: 9px 16px; font-weight: 600; cursor: pointer; font-size: 13px;
+    box-shadow: 0 6px 16px rgba(37,99,235,.35);
+    transition: transform .08s ease, opacity .2s ease;
+  }
+  button.btn:hover { transform: translateY(-1px); }
+  button.btn:active { transform: translateY(0); }
+  button.btn.ghost {
+    background: rgba(255,255,255,.08); color: #e2e8f0;
+    box-shadow: none; border: 1px solid rgba(255,255,255,.15);
+  }
+  button.btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* ---- Cartes & grilles (identiques au dashboard) ---- */
+  .grid {
+    display: grid; gap: 18px;
+    grid-template-columns: repeat(12, 1fr);
+  }
+  .card {
+    background: var(--card); border-radius: 16px; padding: 18px 20px;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+  }
+  .card h3 { margin: 0 0 4px; font-size: 15px; }
+  .card .desc { color: var(--muted); font-size: 12px; margin: 0 0 14px; }
+  .col-8 { grid-column: span 8; }
+  .col-6 { grid-column: span 6; }
+  .col-4 { grid-column: span 4; }
+  .col-12 { grid-column: span 12; }
+  @media (max-width: 980px) {
+    .col-8, .col-6, .col-4 { grid-column: span 12; }
+  }
+
+  .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .refresh-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .err-banner { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; display: none; }
+
+  /* ---- Champs de formulaire ---- */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .field select, .field input {
+    width: 100%; padding: 11px 13px; border: 1px solid var(--border);
+    border-radius: 10px; font-size: 14px; outline: none; background: #fff;
+    color: var(--ink);
+  }
+  .field select:focus, .field input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(14,165,233,.15); }
+
+  /* ---- Résultat simulateur ---- */
+  .sim-result {
+    margin-top: 18px;
+    padding: 18px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f0f9ff, #eff6ff);
+    border: 1px solid #dbeafe;
+    display: none;
+  }
+  .sim-result.show { display: block; }
+  .sim-result .amount {
+    font-size: 34px; font-weight: 800; color: var(--brand-2);
+    line-height: 1.1;
+  }
+  .sim-result .amount.free { color: var(--green); }
+  .sim-result .amount.undefined { color: var(--muted); }
+  .sim-result .sub-line { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .sim-result .detail { font-size: 12px; color: #475569; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #cbd5e1; }
+  .sim-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+  /* ---- Tableaux ---- */
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.center, th.center { text-align: center; }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* ---- Tags ---- */
+  .tag { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .tag.green { background: #dcfce7; color: #15803d; }
+  .tag.red { background: #fee2e2; color: #b91c1c; }
+  .tag.gray { background: #f1f5f9; color: #475569; }
+  .tag.blue { background: #dbeafe; color: #1d4ed8; }
+  .tag.amber { background: #fef3c7; color: #b45309; }
+
+  /* ---- Grille tarifaire ---- */
+  .tarif-grid { overflow-x: auto; }
+  .tarif-grid table { min-width: 100%; }
+  .tarif-grid th.statut-col { background: #f8fafc; position: sticky; left: 0; z-index: 2; border-right: 2px solid var(--border); min-width: 170px; }
+  .tarif-grid td.statut-cell { background: #f8fafc; position: sticky; left: 0; z-index: 1; border-right: 2px solid var(--border); font-weight: 700; color: var(--ink); }
+  .tarif-grid .cell-amt { font-weight: 700; color: var(--brand-2); font-variant-numeric: tabular-nums; }
+  .tarif-grid .cell-free { color: var(--green); font-weight: 700; }
+  .tarif-grid .cell-undef { color: #cbd5e1; font-style: italic; }
+  .tarif-grid .cell-base { display: block; font-size: 10px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+
+  .empty { color: var(--muted); font-size: 13px; padding: 18px; text-align: center; }
+  .skel { color: var(--muted); font-size: 13px; padding: 12px; }
+  footer { color: #94a3b8; text-align: center; font-size: 12px; margin-top: 30px; }
+
+  .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 560px) { .sim-grid { grid-template-columns: 1fr; } }
+  .row-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: var(--muted); margin-top: 12px; }
+  .legend .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">CMS</div>
+    <div>
+      <h1>CMSFP — Tarifs</h1>
+      <div class="sub">Centre Médico-Social de la Fonction Publique · Règles tarifaires</div>
+    </div>
+  </div>
+  <div class="right">
+    <span id="sessionPill" class="pill">Non connecté</span>
+    <a class="btn ghost" href="/dashboard" style="text-decoration:none">← Tableau de bord</a>
+    <button class="btn ghost" id="refreshBtn" onclick="loadAll()" disabled>↻ Actualiser</button>
+    <button class="btn ghost" id="logoutBtn" onclick="logout()" style="display:none">Déconnexion</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="errBanner" class="err-banner"></div>
+
+  <div class="grid">
+    <!-- Simulateur de tarif -->
+    <div class="card col-6">
+      <h3>🧮 Simulateur de tarif</h3>
+      <p class="desc">Sélectionnez le statut du patient et la prestation pour calculer le montant à payer.</p>
+
+      <div class="sim-grid">
+        <div class="field">
+          <label for="selStatut">Statut patient</label>
+          <select id="selStatut" onchange="runSim()"></select>
+        </div>
+        <div class="field">
+          <label for="selPrestation">Prestation</label>
+          <select id="selPrestation" onchange="runSim()"></select>
+        </div>
+      </div>
+
+      <div class="row-actions">
+        <button class="btn" onclick="runSim()">Calculer le tarif</button>
+        <span id="simBadge" class="tag gray" style="display:none"></span>
+      </div>
+
+      <div id="simResult" class="sim-result">
+        <div id="simAmount" class="amount">—</div>
+        <div id="simSub" class="sub-line"></div>
+        <div id="simMeta" class="sim-meta"></div>
+        <div id="simDetail" class="detail"></div>
+      </div>
+    </div>
+
+    <!-- Synthèse rapide -->
+    <div class="card col-6">
+      <h3>📊 Synthèse des règles</h3>
+      <p class="desc">Vue d'ensemble de la grille tarifaire chargée.</p>
+      <div id="synBody" class="skel">Chargement…</div>
+    </div>
+
+    <!-- Grille tarifaire complète -->
+    <div class="card col-12">
+      <div class="refresh-row" style="margin-bottom:12px">
+        <div>
+          <h3>📋 Grille tarifaire complète</h3>
+          <p class="desc" style="margin:0">Statuts en lignes, prestations en colonnes — montant à payer (FCFA).</p>
+        </div>
+        <span id="gridCount" class="pill">—</span>
+      </div>
+      <div class="tarif-grid">
+        <div id="gridBody" class="skel">Chargement…</div>
+      </div>
+      <div class="legend">
+        <span><span class="swatch" style="background:#dbeafe"></span>Montant payant</span>
+        <span><span class="swatch" style="background:#dcfce7"></span>Gratuit</span>
+        <span><span class="swatch" style="background:#f1f5f9"></span>Non défini</span>
+      </div>
+    </div>
+
+    <!-- Tableau de toutes les règles -->
+    <div class="card col-12">
+      <div class="refresh-row" style="margin-bottom:12px">
+        <div>
+          <h3>📚 Toutes les règles tarifaires</h3>
+          <p class="desc" style="margin:0">Détail de chaque règle : statut × prestation, tarif de base, coefficient, montant calculé.</p>
+        </div>
+        <span id="regleCount" class="pill">—</span>
+      </div>
+      <div class="table-scroll">
+        <div id="reglesBody" class="skel">Chargement…</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>CMSFP Platform — Tarifs &amp; règles tarifaires · Montants en FCFA (entiers) · Authentification JWT</footer>
+</div>
+
+<script>
+/* ------------------------------------------------------------------ */
+/*  Configuration & état                                              */
+/* ------------------------------------------------------------------ */
+const API_BASE = window.location.origin + "/api/v1";
+let TOKEN = null;
+
+// État applicatif
+let STATUTS = [];        // ["fonctionnaire", ...]
+let PRESTATIONS = [];    // ["consultation_generale", ...]
+let REGLES = [];         // [{statut, prestation, montant_base, coefficient, gratuit, description}]
+let REGLES_MAP = {};     // "statut:prestation" -> règle
+
+const fmtFCFA = n => new Intl.NumberFormat("fr-FR").format(Math.round(n || 0)) + " FCFA";
+const fmtNum  = n => new Intl.NumberFormat("fr-FR").format(Math.round(n || 0));
+
+// Échappement HTML pour tout champ texte libre provenant de l'API
+// (description, details) inséré via innerHTML. Les libellés dérivés
+// d'énumérations (statutLabel/prestationLabel) sont déjà sûrs.
+const esc = s => (s == null ? "" : String(s))
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+function showErr(msg) {
+  const b = document.getElementById("errBanner");
+  b.textContent = msg;
+  b.style.display = msg ? "block" : "none";
+}
+
+/* ------------------------------------------------------------------ */
+/*  Libellés lisibles                                                 */
+/* ------------------------------------------------------------------ */
+const STATUT_LABELS = {
+  fonctionnaire: "Fonctionnaire",
+  ayant_droit: "Ayant droit",
+  non_ayant_droit: "Non ayant droit",
+};
+const PRESTATION_LABELS = {
+  consultation_generale: "Consultation générale",
+  consultation_ophtalmo: "Ophtalmologie",
+  consultation_odonto: "Odontologie",
+  analyse_biologique: "Analyse biologique",
+  imagerie: "Imagerie",
+  appareillage_dentaire: "Appareillage dentaire",
+  planification_familiale: "Planification familiale",
+  cardiologie: "Cardiologie",
+};
+
+function statutLabel(s) { return STATUT_LABELS[s] || prettify(s); }
+function prestationLabel(p) { return PRESTATION_LABELS[p] || prettify(p); }
+
+function prettify(s) {
+  if (!s) return "—";
+  return s.toString()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+/* ------------------------------------------------------------------ */
+/*  Calcul local (réplique exacte du moteur serveur)                  */
+/*  Permet de remplir la grille sans N×M appels API.                  */
+/* ------------------------------------------------------------------ */
+function calcLocal(statut, prestation) {
+  const regle = REGLES_MAP[statut + ":" + prestation];
+  if (!regle) return { montant: 0, remise: 0, gratuit: true, details: "Non défini", defined: false };
+  if (regle.gratuit) return { montant: 0, remise: 0, gratuit: true, details: "Gratuit", defined: true };
+  const montant = Math.round(regle.montant_base * regle.coefficient);
+  const remise = Math.round(regle.montant_base - montant);
+  return {
+    montant,
+    remise,
+    gratuit: false,
+    details: (regle.description || "") +
+      " — Base: " + regle.montant_base + " F CFA",
+    defined: true,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Authentification (token depuis localStorage)                      */
+/*  Sur 401 → redirection vers /dashboard (où se trouve le login).    */
+/* ------------------------------------------------------------------ */
+function requireToken() {
+  const saved = localStorage.getItem("access_token");
+  if (!saved) {
+    window.location.href = "/dashboard";
+    return false;
+  }
+  TOKEN = saved;
+  document.getElementById("sessionPill").textContent = "Connecté";
+  document.getElementById("sessionPill").className = "pill ok";
+  document.getElementById("refreshBtn").disabled = false;
+  document.getElementById("logoutBtn").style.display = "inline-block";
+  return true;
+}
+
+function logout() {
+  TOKEN = null;
+  localStorage.removeItem("access_token");
+  window.location.href = "/dashboard";
+}
+
+async function apiGet(path) {
+  const res = await fetch(API_BASE + path, {
+    headers: { Authorization: "Bearer " + TOKEN },
+  });
+  if (res.status === 401) {
+    showErr("Session expirée. Redirection vers le tableau de bord…");
+    setTimeout(() => { window.location.href = "/dashboard"; }, 800);
+    throw new Error("401");
+  }
+  if (!res.ok) throw new Error("HTTP " + res.status + " sur " + path);
+  return res.json();
+}
+
+/* ------------------------------------------------------------------ */
+/*  Chargement global                                                 */
+/* ------------------------------------------------------------------ */
+async function loadAll() {
+  showErr("");
+  try {
+    await Promise.all([loadStatutsPrestations(), loadRegles()]);
+    renderSimSelectors();
+    renderGrid();
+    renderRegles();
+    renderSyn();
+    // Lance un calcul initial du simulateur
+    runSim();
+  } catch (e) {
+    if (e.message !== "401") showErr("Erreur lors du chargement : " + e.message);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  1. Statuts & prestations                                          */
+/* ------------------------------------------------------------------ */
+async function loadStatutsPrestations() {
+  const [s, p] = await Promise.all([
+    apiGet("/tarifs/statuts"),
+    apiGet("/tarifs/prestations"),
+  ]);
+  STATUTS = (s.statuts || []).slice();
+  PRESTATIONS = (p.prestations || []).slice();
+}
+
+/* ------------------------------------------------------------------ */
+/*  2. Toutes les règles tarifaires                                   */
+/* ------------------------------------------------------------------ */
+async function loadRegles() {
+  const data = await apiGet("/tarifs/regles");
+  REGLES = data.regles || [];
+  REGLES_MAP = {};
+  REGLES.forEach(r => {
+    REGLES_MAP[r.statut + ":" + r.prestation] = r;
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/*  Rendu : sélecteurs du simulateur                                  */
+/* ------------------------------------------------------------------ */
+function renderSimSelectors() {
+  const selS = document.getElementById("selStatut");
+  const selP = document.getElementById("selPrestation");
+  const curS = selS.value;
+  const curP = selP.value;
+
+  selS.innerHTML = STATUTS.map(s =>
+    `<option value="${s}"${s === curS ? " selected" : ""}>${statutLabel(s)}</option>`
+  ).join("");
+  selP.innerHTML = PRESTATIONS.map(p =>
+    `<option value="${p}"${p === curP ? " selected" : ""}>${prestationLabel(p)}</option>`
+  ).join("");
+}
+
+/* ------------------------------------------------------------------ */
+/*  3. Simulateur (appel /calculer)                                   */
+/* ------------------------------------------------------------------ */
+async function runSim() {
+  const statut = document.getElementById("selStatut").value;
+  const prestation = document.getElementById("selPrestation").value;
+  const box = document.getElementById("simResult");
+  const amountEl = document.getElementById("simAmount");
+  const subEl = document.getElementById("simSub");
+  const metaEl = document.getElementById("simMeta");
+  const detailEl = document.getElementById("simDetail");
+  const badgeEl = document.getElementById("simBadge");
+
+  if (!statut || !prestation || !TOKEN) {
+    box.classList.remove("show");
+    badgeEl.style.display = "none";
+    return;
+  }
+
+  // État de chargement
+  box.classList.add("show");
+  amountEl.textContent = "…";
+  amountEl.className = "amount";
+  subEl.textContent = "Calcul en cours…";
+  metaEl.innerHTML = "";
+  detailEl.textContent = "";
+  badgeEl.style.display = "none";
+
+  try {
+    const data = await apiGet(
+      "/tarifs/calculer?statut=" + encodeURIComponent(statut) +
+      "&prestation=" + encodeURIComponent(prestation)
+    );
+
+    const montant = data.montant || 0;
+    const remise = data.remise || 0;
+    const gratuit = !!data.gratuit;
+    const details = data.details || "";
+    const defined = !/non d[ée]fini/i.test(details);
+
+    // Montant principal
+    if (gratuit) {
+      if (defined) {
+        amountEl.textContent = "Gratuit";
+        amountEl.className = "amount free";
+        badgeEl.textContent = "Gratuit";
+        badgeEl.className = "tag green";
+      } else {
+        amountEl.textContent = "Non défini";
+        amountEl.className = "amount undefined";
+        badgeEl.textContent = "Non défini";
+        badgeEl.className = "tag gray";
+      }
+    } else {
+      amountEl.textContent = fmtFCFA(montant);
+      amountEl.className = "amount";
+      badgeEl.textContent = "Payant";
+      badgeEl.className = "tag blue";
+    }
+    badgeEl.style.display = "inline-block";
+
+    // Sous-ligne contextuelle
+    subEl.textContent =
+      statutLabel(statut) + " · " + prestationLabel(prestation);
+
+    // Méta (remise éventuelle)
+    let meta = "";
+    if (!gratuit && defined && remise > 0) {
+      meta += `<span class="tag green">Remise : ${fmtFCFA(remise)}</span>`;
+    }
+    if (!gratuit && defined) {
+      const regle = REGLES_MAP[statut + ":" + prestation];
+      if (regle && regle.coefficient != null) {
+        const pct = Math.round(regle.coefficient * 100);
+        meta += `<span class="tag amber">Coefficient : ${pct}%</span>`;
+      }
+    }
+    metaEl.innerHTML = meta;
+
+    detailEl.textContent = details || "Aucun détail complémentaire.";
+  } catch (e) {
+    if (e.message !== "401") {
+      amountEl.textContent = "Erreur";
+      amountEl.className = "amount undefined";
+      subEl.textContent = "Impossible de calculer : " + e.message;
+      detailEl.textContent = "";
+      badgeEl.style.display = "none";
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  4. Grille tarifaire complète (statuts × prestations)              */
+/* ------------------------------------------------------------------ */
+function renderGrid() {
+  const body = document.getElementById("gridBody");
+  const countPill = document.getElementById("gridCount");
+
+  if (!STATUTS.length || !PRESTATIONS.length) {
+    body.innerHTML = `<div class="empty">Aucune donnée disponible.</div>`;
+    countPill.textContent = "0";
+    return;
+  }
+
+  let html = "<table><thead><tr>";
+  html += '<th class="statut-col">Statut \ Prestation</th>';
+  PRESTATIONS.forEach(p => {
+    html += `<th class="center">${prestationLabel(p)}</th>`;
+  });
+  html += "</tr></thead><tbody>";
+
+  STATUTS.forEach(s => {
+    html += `<tr><td class="statut-cell">${statutLabel(s)}</td>`;
+    PRESTATIONS.forEach(p => {
+      const c = calcLocal(s, p);
+      if (!c.defined) {
+        html += `<td class="center"><span class="cell-undef">—</span></td>`;
+      } else if (c.gratuit) {
+        html += `<td class="center"><span class="cell-free">Gratuit</span></td>`;
+      } else {
+        const regle = REGLES_MAP[s + ":" + p];
+        const baseTxt = regle
+          ? `<span class="cell-base">Base ${fmtNum(regle.montant_base)} · coef. ${regle.coefficient}</span>`
+          : "";
+        html += `<td class="center"><span class="cell-amt">${fmtNum(c.montant)}</span>${baseTxt}</td>`;
+      }
+    });
+    html += "</tr>";
+  });
+  html += "</tbody></table>";
+
+  body.innerHTML = html;
+  countPill.textContent = STATUTS.length + " statut(s) × " + PRESTATIONS.length + " prestation(s)";
+}
+
+/* ------------------------------------------------------------------ */
+/*  5. Tableau de toutes les règles                                   */
+/* ------------------------------------------------------------------ */
+function renderRegles() {
+  const body = document.getElementById("reglesBody");
+  const countPill = document.getElementById("regleCount");
+
+  if (!REGLES.length) {
+    body.innerHTML = `<div class="empty">Aucune règle tarifaire définie.</div>`;
+    countPill.textContent = "0 règle";
+    return;
+  }
+
+  let html = "<table><thead><tr>";
+  html += "<th>Statut</th>";
+  html += "<th>Prestation</th>";
+  html += "<th class=\"num\">Tarif de base</th>";
+  html += "<th class=\"center\">Coefficient</th>";
+  html += "<th class=\"num\">Montant à payer</th>";
+  html += "<th class=\"num\">Remise</th>";
+  html += "<th class=\"center\">Type</th>";
+  html += "<th>Description</th>";
+  html += "</tr></thead><tbody>";
+
+  // Tri : par statut puis par prestation
+  const sorted = REGLES.slice().sort((a, b) =>
+    (a.statut + a.prestation).localeCompare(b.statut + b.prestation));
+
+  sorted.forEach(r => {
+    const c = calcLocal(r.statut, r.prestation);
+    const coefPct = Math.round((r.coefficient || 1) * 100);
+    const typeTag = r.gratuit
+      ? '<span class="tag green">Gratuit</span>'
+      : (coefPct < 100
+          ? '<span class="tag amber">Réduit ' + coefPct + '%</span>'
+          : '<span class="tag blue">Plein tarif</span>');
+
+    html += "<tr>";
+    html += `<td><strong>${statutLabel(r.statut)}</strong></td>`;
+    html += `<td>${prestationLabel(r.prestation)}</td>`;
+    html += `<td class="num">${fmtNum(r.montant_base)}</td>`;
+    html += `<td class="center">${r.coefficient} <span style="color:var(--muted);font-size:11px">(${coefPct}%)</span></td>`;
+    if (r.gratuit) {
+      html += `<td class="num"><span class="cell-free">Gratuit</span></td>`;
+    } else {
+      html += `<td class="num"><span class="cell-amt">${fmtNum(c.montant)}</span></td>`;
+    }
+    html += `<td class="num">${r.gratuit ? "—" : fmtNum(c.remise)}</td>`;
+    html += `<td class="center">${typeTag}</td>`;
+    html += `<td style="color:#475569">${esc(r.description) || "—"}</td>`;
+    html += "</tr>";
+  });
+
+  html += "</tbody></table>";
+  body.innerHTML = html;
+  countPill.textContent = REGLES.length + " règle(s)";
+}
+
+/* ------------------------------------------------------------------ */
+/*  6. Synthèse                                                       */
+/* ------------------------------------------------------------------ */
+function renderSyn() {
+  const body = document.getElementById("synBody");
+
+  const total = REGLES.length;
+  const gratuites = REGLES.filter(r => r.gratuit).length;
+  const plein = REGLES.filter(r => !r.gratuit && r.coefficient >= 1).length;
+  const reduit = REGLES.filter(r => !r.gratuit && r.coefficient < 1).length;
+  const cellules = STATUTS.length * PRESTATIONS.length;
+  const couvertes = total;
+  const manquantes = Math.max(cellules - couvertes, 0);
+
+  // Montant min/max des règles payantes
+  const payantes = REGLES.filter(r => !r.gratuit).map(r => Math.round(r.montant_base * r.coefficient));
+  const minP = payantes.length ? Math.min(...payantes) : null;
+  const maxP = payantes.length ? Math.max(...payantes) : null;
+
+  let html = "<table>";
+  html += `<tr><th>Statuts patient</th><td class="num">${STATUTS.length}</td></tr>`;
+  html += `<tr><th>Types de prestation</th><td class="num">${PRESTATIONS.length}</td></tr>`;
+  html += `<tr><th>Règles définies</th><td class="num"><strong>${total}</strong> / ${cellules} cellules</td></tr>`;
+  if (manquantes > 0) {
+    html += `<tr><th>Cellules non définies</th><td class="num"><span class="tag amber">${manquantes}</span></td></tr>`;
+  }
+  html += `<tr><th>Gratuites</th><td class="num"><span class="tag green">${gratuites}</span></td></tr>`;
+  html += `<tr><th>Tarif réduit (coef &lt; 1)</th><td class="num"><span class="tag amber">${reduit}</span></td></tr>`;
+  html += `<tr><th>Plein tarif</th><td class="num"><span class="tag blue">${plein}</span></td></tr>`;
+  if (minP != null) {
+    html += `<tr><th>Montant payant min.</th><td class="num">${fmtFCFA(minP)}</td></tr>`;
+    html += `<tr><th>Montant payant max.</th><td class="num">${fmtFCFA(maxP)}</td></tr>`;
+  }
+  html += "</table>";
+
+  body.innerHTML = html;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Bootstrap                                                         */
+/* ------------------------------------------------------------------ */
+(function init() {
+  if (!requireToken()) return;   // redirige vers /dashboard si pas de token
+  loadAll();
+})();
+
+// Recalcul du simulateur quand on change la sélection via clavier
+document.addEventListener("change", e => {
+  if (e.target && (e.target.id === "selStatut" || e.target.id === "selPrestation")) {
+    runSim();
+  }
+});
+</script>
+</body>
+</html>

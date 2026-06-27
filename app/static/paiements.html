@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CMSFP — Paiements</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --bg-2: #1e293b;
+    --card: #ffffff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --brand: #0ea5e9;
+    --brand-2: #2563eb;
+    --green: #16a34a;
+    --amber: #d97706;
+    --red: #dc2626;
+    --border: #e2e8f0;
+    --shadow: 0 10px 30px rgba(2, 6, 23, .12);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  .topbar {
+    background: rgba(15, 23, 42, .9);
+    backdrop-filter: blur(6px);
+    color: #fff;
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .topbar .brand { display: flex; align-items: center; gap: 12px; }
+  .topbar .logo {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    display: grid; place-items: center; font-weight: 800; color: #fff;
+    box-shadow: 0 6px 18px rgba(14,165,233,.45);
+  }
+  .topbar h1 { font-size: 18px; margin: 0; font-weight: 700; }
+  .topbar .sub { font-size: 12px; color: #94a3b8; }
+  .topbar .right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .pill {
+    background: rgba(255,255,255,.08);
+    color: #cbd5e1;
+    border: 1px solid rgba(255,255,255,.12);
+    padding: 6px 12px; border-radius: 999px; font-size: 12px;
+  }
+  .pill.ok { background: rgba(22,163,74,.18); color: #bbf7d0; border-color: rgba(22,163,74,.4); }
+  .pill.bad { background: rgba(220,38,38,.18); color: #fecaca; border-color: rgba(220,38,38,.4); }
+  button.btn, a.btn {
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff; border: none; border-radius: 10px;
+    padding: 9px 16px; font-weight: 600; cursor: pointer; font-size: 13px;
+    box-shadow: 0 6px 16px rgba(37,99,235,.35);
+    transition: transform .08s ease, opacity .2s ease;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+  }
+  button.btn:hover, a.btn:hover { transform: translateY(-1px); }
+  button.btn:active { transform: translateY(0); }
+  button.btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  button.btn.ghost, a.btn.ghost {
+    background: rgba(255,255,255,.08); color: #e2e8f0;
+    box-shadow: none; border: 1px solid rgba(255,255,255,.15);
+  }
+  button.btn.danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 6px 16px rgba(220,38,38,.35);
+  }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  .err-banner { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; display: none; }
+
+  /* KPI cards */
+  .kpi-grid {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    margin-bottom: 22px;
+  }
+  .kpi {
+    background: var(--card); border-radius: 16px; padding: 18px 20px;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+    position: relative; overflow: hidden;
+  }
+  .kpi .label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .kpi .value { font-size: 26px; font-weight: 800; margin-top: 6px; }
+  .kpi .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .kpi .accent { position: absolute; right: -18px; top: -18px; width: 70px; height: 70px; border-radius: 50%; opacity: .14; }
+
+  /* Cards */
+  .card {
+    background: var(--card); border-radius: 16px; padding: 18px 20px;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+  }
+  .card h3 { margin: 0 0 4px; font-size: 15px; }
+  .card .desc { color: var(--muted); font-size: 12px; margin: 0 0 14px; }
+
+  /* Toolbar / filters */
+  .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .toolbar .grow { flex: 1; min-width: 200px; }
+  .filter-row {
+    display: grid; gap: 12px;
+    grid-template-columns: 1.6fr 1fr 1fr 1fr auto;
+    align-items: end; margin-top: 14px;
+  }
+  @media (max-width: 860px) { .filter-row { grid-template-columns: 1fr 1fr; } }
+  .field { margin-bottom: 0; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .field input, .field select {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+    border-radius: 10px; font-size: 14px; outline: none; font-family: inherit;
+    background: #fff; color: var(--ink);
+  }
+  .field input:focus, .field select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(14,165,233,.15); }
+
+  /* Search typeahead */
+  .search-wrap { position: relative; }
+  .search-input {
+    width: 100%; padding: 10px 12px 10px 38px; border: 1px solid var(--border);
+    border-radius: 10px; font-size: 14px; outline: none; transition: box-shadow .15s, border-color .15s;
+  }
+  .search-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(14,165,233,.15); }
+  .search-ico {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    font-size: 15px; color: var(--muted); pointer-events: none;
+  }
+  .dropdown {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+    background: #fff; border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: var(--shadow); max-height: 340px; overflow-y: auto; z-index: 20; display: none;
+  }
+  .dropdown.show { display: block; }
+  .dd-item {
+    padding: 11px 14px; border-bottom: 1px solid var(--border); cursor: pointer;
+    display: flex; align-items: center; gap: 12px; transition: background .1s;
+  }
+  .dd-item:last-child { border-bottom: none; }
+  .dd-item:hover { background: #f1f5f9; }
+  .dd-avatar {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px;
+  }
+  .dd-main { flex: 1; min-width: 0; }
+  .dd-name { font-weight: 600; font-size: 13px; color: var(--ink); }
+  .dd-meta { font-size: 11px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+  .dd-empty, .dd-loading { padding: 16px; text-align: center; color: var(--muted); font-size: 13px; }
+
+  /* Filter banner */
+  .filter-banner {
+    display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8;
+    padding: 9px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px;
+  }
+  .filter-banner.show { display: flex; }
+  .filter-banner b { font-weight: 700; }
+
+  /* Table */
+  table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.data th, table.data td { text-align: left; padding: 10px 10px; border-bottom: 1px solid var(--border); }
+  table.data th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.data tbody tr { cursor: pointer; transition: background .1s; }
+  table.data tbody tr:hover { background: #f8fafc; }
+  table.data tbody tr:last-child td { border-bottom: none; }
+  .tag { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .tag.green { background: #dcfce7; color: #15803d; }
+  .tag.red { background: #fee2e2; color: #b91c1c; }
+  .tag.gray { background: #f1f5f9; color: #475569; }
+  .tag.amber { background: #fef3c7; color: #b45309; }
+  .tag.blue { background: #dbeafe; color: #1d4ed8; }
+  .patient-cell { display: flex; align-items: center; gap: 8px; }
+  .patient-cell .pa {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 10px;
+  }
+  .patient-cell .pid { font-size: 11px; color: var(--muted); }
+
+  .empty { color: var(--muted); font-size: 13px; padding: 24px; text-align: center; }
+  .skel { color: var(--muted); font-size: 13px; padding: 18px; text-align: center; }
+
+  /* Pagination */
+  .pager { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; flex-wrap: wrap; gap: 10px; }
+  .pager .info { font-size: 12px; color: var(--muted); }
+  .pager .nav { display: flex; gap: 8px; }
+
+  /* Modals */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(2,6,23,.7);
+    display: grid; place-items: center; z-index: 50;
+    backdrop-filter: blur(4px);
+  }
+  .overlay.hidden { display: none; }
+  .modal-card {
+    background: var(--card); border-radius: 18px; padding: 28px;
+    width: min(620px, 94vw); box-shadow: var(--shadow); max-height: 90vh; overflow-y: auto;
+  }
+  .modal-card h2 { margin: 0 0 6px; font-size: 20px; }
+  .modal-card p { margin: 0 0 20px; color: var(--muted); font-size: 13px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-grid .full { grid-column: span 2; }
+  .modal-card .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .modal-card .field input, .modal-card .field select, .modal-card .field textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+    border-radius: 10px; font-size: 14px; outline: none; font-family: inherit;
+  }
+  .modal-card .field input:focus, .modal-card .field select:focus, .modal-card .field textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(14,165,233,.15); }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; flex-wrap: wrap; }
+  .form-msg { color: var(--red); font-size: 13px; min-height: 18px; margin-top: 10px; }
+  .form-msg.ok { color: var(--green); }
+
+  /* Detail */
+  .detail-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+  .detail-head .big {
+    width: 56px; height: 56px; border-radius: 16px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 22px;
+    box-shadow: 0 6px 18px rgba(37,99,235,.35);
+  }
+  .detail-head .info { flex: 1; min-width: 160px; }
+  .detail-head .info .t { font-size: 18px; font-weight: 800; }
+  .detail-head .info .s { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .detail-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 6px; }
+  .detail-table th, .detail-table td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  .detail-table th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; width: 42%; }
+  .detail-table td { font-weight: 600; }
+  .detail-table tr:last-child th, .detail-table tr:last-child td { border-bottom: none; }
+  .detail-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #0f172a; color: #fff; padding: 12px 20px; border-radius: 12px;
+    font-size: 13px; box-shadow: var(--shadow); z-index: 100; opacity: 0; pointer-events: none;
+    transition: opacity .2s, transform .2s; border: 1px solid rgba(255,255,255,.1);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  footer { color: #94a3b8; text-align: center; font-size: 12px; margin-top: 30px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">CMS</div>
+    <div>
+      <h1>CMSFP — Paiements</h1>
+      <div class="sub">Centre Médico-Social de la Fonction Publique</div>
+    </div>
+  </div>
+  <div class="right">
+    <a class="btn ghost" href="/dashboard">← Tableau de bord</a>
+    <a class="btn ghost" href="/fiche-patient">Patients</a>
+    <span id="sessionPill" class="pill">Non connecté</span>
+    <button class="btn ghost" id="refreshBtn" onclick="loadAll()">↻ Actualiser</button>
+    <button class="btn ghost" id="logoutBtn" onclick="logout()">Déconnexion</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="errBanner" class="err-banner"></div>
+
+  <!-- KPI -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi">
+      <div class="accent" style="background:var(--green)"></div>
+      <div class="label">Total encaissé</div>
+      <div class="value" id="kpiEncaisse">—</div>
+      <div class="hint" id="kpiEncaisseHint">paiements effectués</div>
+    </div>
+    <div class="kpi">
+      <div class="accent" style="background:var(--red)"></div>
+      <div class="label">Total remboursé</div>
+      <div class="value" id="kpiRembourse">—</div>
+      <div class="hint" id="kpiRembourseHint">remboursements</div>
+    </div>
+    <div class="kpi">
+      <div class="accent" style="background:var(--amber)"></div>
+      <div class="label">Total différé</div>
+      <div class="value" id="kpiDiffere">—</div>
+      <div class="hint" id="kpiDiffereHint">en attente de régularisation</div>
+    </div>
+    <div class="kpi">
+      <div class="accent" style="background:var(--brand)"></div>
+      <div class="label">Nombre total</div>
+      <div class="value" id="kpiNombre">—</div>
+      <div class="hint" id="kpiNombreHint">paiements enregistrés</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="card" style="margin-bottom:18px;">
+    <div class="toolbar" style="justify-content: space-between;">
+      <div>
+        <h3>Gestion des paiements</h3>
+        <p class="desc">Encaissements, remboursements et paiements différés</p>
+      </div>
+      <button class="btn" onclick="openNewPaiement()">＋ Nouveau paiement</button>
+    </div>
+
+    <div class="filter-row">
+      <div class="field">
+        <label for="patientSearch">Rechercher un patient</label>
+        <div class="search-wrap">
+          <span class="search-ico">🔍</span>
+          <input id="patientSearch" class="search-input" type="text" placeholder="Nom, prénom, téléphone, matricule…" autocomplete="off" />
+          <div id="patientDropdown" class="dropdown"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="statutFilter">Statut</label>
+        <select id="statutFilter" onchange="onFilterChange()">
+          <option value="">Tous</option>
+          <option value="effectue">Effectué</option>
+          <option value="rembourse">Remboursé</option>
+          <option value="differe">Différé</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="modeFilter">Mode</label>
+        <select id="modeFilter" onchange="onFilterChange()">
+          <option value="">Tous</option>
+          <option value="especes">Espèces</option>
+          <option value="mobile_money">Mobile Money</option>
+          <option value="cheque">Chèque</option>
+          <option value="virement">Virement</option>
+          <option value="carte">Carte</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="dateFilter">Date (du / au)</label>
+        <div style="display:flex; gap:6px;">
+          <input id="dateFrom" type="date" style="flex:1; padding:10px 10px; border:1px solid var(--border); border-radius:10px; font-size:13px;" onchange="renderTable()" />
+          <input id="dateTo" type="date" style="flex:1; padding:10px 10px; border:1px solid var(--border); border-radius:10px; font-size:13px;" onchange="renderTable()" />
+        </div>
+      </div>
+      <div class="field" style="display:flex; align-items:flex-end;">
+        <button class="btn ghost" onclick="resetFilters()" style="width:100%;">Réinitialiser</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="filterBanner" class="filter-banner">
+    <span>Filtre actif : <b id="filterBannerText"></b></span>
+    <button class="btn ghost" style="padding:5px 12px; font-size:12px;" onclick="clearPatientFilter()">✕ Retirer</button>
+  </div>
+
+  <!-- Table -->
+  <div class="card">
+    <div class="toolbar" style="justify-content: space-between; margin-bottom: 12px;">
+      <h3 style="margin:0;">Liste des paiements</h3>
+      <span id="tableCount" class="pill">0 paiement</span>
+    </div>
+    <div id="tableBody" class="skel">Chargement des paiements…</div>
+    <div class="pager">
+      <div class="info" id="pagerInfo">—</div>
+      <div class="nav">
+        <button class="btn ghost" id="prevBtn" onclick="changePage(-1)">← Précédent</button>
+        <button class="btn ghost" id="nextBtn" onclick="changePage(1)">Suivant →</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>CMSFP Platform — Paiements · Montants en FCFA (entiers) · Authentification JWT</footer>
+</div>
+
+<!-- Modal : Nouveau paiement -->
+<div class="overlay hidden" id="newOverlay">
+  <div class="modal-card">
+    <h2>Nouveau paiement</h2>
+    <p>Enregistrez un encaissement. Sélectionnez un patient, puis une consultation si applicable.</p>
+    <div class="form-grid">
+      <div class="field full">
+        <label for="npPatient">Patient *</label>
+        <div class="search-wrap">
+          <span class="search-ico">🔍</span>
+          <input id="npPatient" class="search-input" type="text" placeholder="Rechercher un patient…" autocomplete="off" />
+          <div id="npDropdown" class="dropdown"></div>
+        </div>
+        <div id="npPatientTag" style="margin-top:8px; display:none;"></div>
+      </div>
+      <div class="field">
+        <label for="npConsult">Consultation associée</label>
+        <select id="npConsult" disabled>
+          <option value="">— Aucune —</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="npMontant">Montant (FCFA) *</label>
+        <input id="npMontant" type="number" min="0" step="1" placeholder="ex. 15000" />
+      </div>
+      <div class="field">
+        <label for="npMode">Mode de paiement *</label>
+        <select id="npMode">
+          <option value="especes">Espèces</option>
+          <option value="mobile_money">Mobile Money</option>
+          <option value="cheque">Chèque</option>
+          <option value="virement">Virement</option>
+          <option value="carte">Carte</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="npStatut">Statut *</label>
+        <select id="npStatut">
+          <option value="effectue">Effectué</option>
+          <option value="differe">Différé</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-msg" id="newMsg"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeNewPaiement()">Annuler</button>
+      <button class="btn" id="newSubmit" onclick="submitNewPaiement()">Encaisser</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Détail -->
+<div class="overlay hidden" id="detailOverlay">
+  <div class="modal-card">
+    <div id="detailContent" class="skel">Chargement…</div>
+  </div>
+</div>
+
+<!-- Modal : Rembourser -->
+<div class="overlay hidden" id="rembOverlay">
+  <div class="modal-card" style="width:min(480px,94vw);">
+    <h2>Rembourser le paiement</h2>
+    <p>Un motif est obligatoire. Le paiement passera au statut « Remboursé ».</p>
+    <div class="field">
+      <label for="rembMotif">Motif du remboursement *</label>
+      <textarea id="rembMotif" rows="3" placeholder="ex. Doublon de paiement — annulation"></textarea>
+    </div>
+    <div class="form-msg" id="rembMsg"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeRemboursement()">Annuler</button>
+      <button class="btn danger" id="rembSubmit" onclick="confirmRembourser()">Confirmer le remboursement</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Différer -->
+<div class="overlay hidden" id="diffOverlay">
+  <div class="modal-card" style="width:min(480px,94vw);">
+    <h2>Différer le paiement</h2>
+    <p>Le paiement passera au statut « Différé » et pourra être régularisé ultérieurement.</p>
+    <div class="field">
+      <label for="diffMotif">Motif du report (optionnel)</label>
+      <textarea id="diffMotif" rows="3" placeholder="ex. Patient absent — paiement à recouvrer"></textarea>
+    </div>
+    <div class="form-msg" id="diffMsg"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeDifferer()">Annuler</button>
+      <button class="btn" id="diffSubmit" onclick="confirmDifferer()">Confirmer le report</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Édition -->
+<div class="overlay hidden" id="editOverlay">
+  <div class="modal-card" style="width:min(480px,94vw);">
+    <h2>Modifier le paiement</h2>
+    <p>Ajustez le montant ou le mode de paiement.</p>
+    <div class="form-grid">
+      <div class="field">
+        <label for="edMontant">Nouveau montant (FCFA)</label>
+        <input id="edMontant" type="number" min="0" step="1" />
+      </div>
+      <div class="field">
+        <label for="edMode">Nouveau mode</label>
+        <select id="edMode">
+          <option value="especes">Espèces</option>
+          <option value="mobile_money">Mobile Money</option>
+          <option value="cheque">Chèque</option>
+          <option value="virement">Virement</option>
+          <option value="carte">Carte</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-msg" id="editMsg"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeEdit()">Annuler</button>
+      <button class="btn" id="editSubmit" onclick="confirmEdit()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ------------------------------------------------------------------ */
+/*  Configuration & état                                              */
+/* ------------------------------------------------------------------ */
+const API_BASE = window.location.origin + "/api/v1";
+let TOKEN = localStorage.getItem("access_token");
+
+const PAGE_SIZE = 50;
+let currentPage = 0;
+let lastList = [];          // paiements de la page courante (après filtre date)
+let totalAll = 0;           // total renvoyé par l'API (avant filtre date client)
+let currentDetail = null;   // paiement détaillé affiché
+let actionTargetId = null;  // id cible pour les actions (rembourser/différer/éditer)
+let patientNameCache = new Map();   // patientId -> {nom, prenom}
+
+let npSelectedPatient = null;   // patient sélectionné dans le form nouveau paiement
+let npSearchTimer = null, npLastReq = 0;
+let searchTimer = null, lastReq = 0;
+
+const fmtFCFA = n => new Intl.NumberFormat("fr-FR").format(Math.round(n || 0)) + " FCFA";
+const fmtNum  = n => new Intl.NumberFormat("fr-FR").format(Math.round(n || 0));
+
+const MODE_LABELS = {
+  especes: "Espèces",
+  mobile_money: "Mobile Money",
+  cheque: "Chèque",
+  virement: "Virement",
+  carte: "Carte",
+};
+const STATUT_LABELS = {
+  effectue: "Effectué",
+  rembourse: "Remboursé",
+  differe: "Différé",
+};
+const STATUT_TAG = {
+  effectue: "green",
+  rembourse: "red",
+  differe: "amber",
+};
+const CONSULT_LABELS = {
+  generale: "Consultation générale",
+  ophtalmologique: "Ophtalmologique",
+  odontologique: "Odontologique",
+  cardiologie: "Cardiologie",
+  analyse: "Analyse biologique",
+  imagerie: "Imagerie",
+};
+
+function showErr(msg) {
+  const b = document.getElementById("errBanner");
+  b.textContent = msg;
+  b.style.display = msg ? "block" : "none";
+}
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2600);
+}
+function escapeHtml(s) {
+  if (s == null) return "";
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+function initiales(p) {
+  const a = (p.prenom || "").trim().charAt(0).toUpperCase();
+  const b = (p.nom || "").trim().charAt(0).toUpperCase();
+  return (a + b) || "??";
+}
+
+/* ------------------------------------------------------------------ */
+/*  Authentification                                                  */
+/* ------------------------------------------------------------------ */
+function checkAuth() {
+  if (!TOKEN) {
+    window.location.href = "/dashboard";
+    return false;
+  }
+  document.getElementById("sessionPill").textContent = "Connecté";
+  document.getElementById("sessionPill").className = "pill ok";
+  return true;
+}
+function logout() {
+  localStorage.removeItem("access_token");
+  TOKEN = null;
+  window.location.href = "/dashboard";
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helpers fetch authentifiés                                        */
+/* ------------------------------------------------------------------ */
+async function apiGet(path) {
+  const res = await fetch(API_BASE + path, {
+    headers: { Authorization: "Bearer " + TOKEN },
+  });
+  if (res.status === 401) {
+    localStorage.removeItem("access_token");
+    window.location.href = "/dashboard";
+    throw new Error("401");
+  }
+  if (res.status === 204) return null;
+  if (!res.ok) {
+    let detail = "HTTP " + res.status;
+    try { const j = await res.json(); detail = j.detail || detail; } catch (_) {}
+    throw new Error(detail);
+  }
+  return res.json();
+}
+async function apiPost(path, body) {
+  const opts = { method: "POST", headers: { Authorization: "Bearer " + TOKEN } };
+  if (body !== undefined) {
+    opts.headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(API_BASE + path, opts);
+  if (res.status === 401) { localStorage.removeItem("access_token"); window.location.href = "/dashboard"; throw new Error("401"); }
+  if (!res.ok) {
+    let detail = "HTTP " + res.status;
+    try { const j = await res.json(); detail = j.detail || detail; } catch (_) {}
+    throw new Error(detail);
+  }
+  return res.json();
+}
+async function apiPutQuery(path) {
+  // PUT /paiements/{id}?montant=&mode=  (params dans l'URL, pas de body JSON)
+  const res = await fetch(API_BASE + path, {
+    method: "PUT",
+    headers: { Authorization: "Bearer " + TOKEN },
+  });
+  if (res.status === 401) { localStorage.removeItem("access_token"); window.location.href = "/dashboard"; throw new Error("401"); }
+  if (!res.ok) {
+    let detail = "HTTP " + res.status;
+    try { const j = await res.json(); detail = j.detail || detail; } catch (_) {}
+    throw new Error(detail);
+  }
+  return res.json();
+}
+async function apiDelete(path) {
+  const res = await fetch(API_BASE + path, {
+    method: "DELETE",
+    headers: { Authorization: "Bearer " + TOKEN },
+  });
+  if (res.status === 401) { localStorage.removeItem("access_token"); window.location.href = "/dashboard"; throw new Error("401"); }
+  if (res.status !== 204 && !res.ok) {
+    let detail = "HTTP " + res.status;
+    try { const j = await res.json(); detail = j.detail || detail; } catch (_) {}
+    throw new Error(detail);
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Chargement global                                                 */
+/* ------------------------------------------------------------------ */
+async function loadAll() {
+  showErr("");
+  try {
+    await Promise.all([loadStats(), loadPaiements()]);
+  } catch (e) {
+    if (e.message !== "401") showErr("Erreur lors du chargement : " + e.message);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Statistiques                                                      */
+/* ------------------------------------------------------------------ */
+async function loadStats() {
+  try {
+    const d = await apiGet("/paiements/statistiques/summary");
+    document.getElementById("kpiEncaisse").textContent = fmtFCFA(d.total_encaisse);
+    document.getElementById("kpiEncaisseHint").textContent = d.nombre_effectues + " paiement(s) effectué(s)";
+    document.getElementById("kpiRembourse").textContent = fmtFCFA(d.total_rembourse);
+    document.getElementById("kpiRembourseHint").textContent = d.nombre_rembourses + " remboursement(s)";
+    document.getElementById("kpiDiffere").textContent = fmtFCFA(d.total_differe);
+    document.getElementById("kpiDiffereHint").textContent = d.nombre_differes + " paiement(s) en attente";
+    document.getElementById("kpiNombre").textContent = fmtNum(d.nombre_total);
+    document.getElementById("kpiNombreHint").textContent = "paiements enregistrés au total";
+  } catch (e) {
+    if (e.message !== "401") showErr("Statistiques indisponibles : " + e.message);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Liste des paiements (avec filtres serveur + filtre date client)   */
+/* ------------------------------------------------------------------ */
+function buildListQuery() {
+  const skip = currentPage * PAGE_SIZE;
+  let q = "?skip=" + skip + "&limit=" + PAGE_SIZE;
+  const pid = document.getElementById("patientSearch").dataset.patientId;
+  if (pid) q += "&patient_id=" + encodeURIComponent(pid);
+  const st = document.getElementById("statutFilter").value;
+  if (st) q += "&statut=" + encodeURIComponent(st);
+  const md = document.getElementById("modeFilter").value;
+  if (md) q += "&mode=" + encodeURIComponent(md);
+  return q;
+}
+
+function dateInRange(iso) {
+  if (!iso) return true;
+  const d = new Date(iso);
+  const from = document.getElementById("dateFrom").value;
+  const to = document.getElementById("dateTo").value;
+  if (from && d < new Date(from + "T00:00:00")) return false;
+  if (to && d > new Date(to + "T23:59:59")) return false;
+  return true;
+}
+
+async function loadPaiements() {
+  const body = document.getElementById("tableBody");
+  body.className = "skel";
+  body.textContent = "Chargement des paiements…";
+  try {
+    const data = await apiGet("/paiements" + buildListQuery());
+    totalAll = data.total || 0;
+    lastList = (data.paiements || []).filter(p => dateInRange(p.date_paiement));
+    // Résolution des noms de patients (best-effort, mis en cache)
+    await resolvePatientNames(lastList);
+    renderTable();
+  } catch (e) {
+    if (e.message !== "401") {
+      body.className = "";
+      body.innerHTML = '<div class="empty" style="color:var(--red);">Erreur : ' + escapeHtml(e.message) + '</div>';
+    }
+  }
+}
+
+async function resolvePatientNames(paiements) {
+  const missing = [...new Set(paiements.map(p => p.patient_id))].filter(id => !patientNameCache.has(id));
+  if (!missing.length) return;
+  await Promise.all(missing.map(async id => {
+    try {
+      const p = await apiGet("/patients/" + id);
+      patientNameCache.set(id, { nom: p.nom, prenom: p.prenom, status: p.status, telephone: p.telephone, matricule: p.matricule });
+    } catch (_) {
+      patientNameCache.set(id, { nom: "—", prenom: "", status: null });
+    }
+  }));
+  // Re-render pour afficher les noms résolus
+  if (lastList.length) renderTable();
+}
+
+function patientCell(id) {
+  const p = patientNameCache.get(id);
+  const name = p ? ((p.prenom + " " + p.nom).trim()) : ("Patient #" + id);
+  const ini = p ? initiales(p) : "#";
+  return '<div class="patient-cell"><span class="pa">' + escapeHtml(ini) + '</span>' +
+    '<span>' + escapeHtml(name) + '<br><span class="pid">#' + id + '</span></span></div>';
+}
+
+function renderTable() {
+  const body = document.getElementById("tableBody");
+  body.className = "";
+  const shown = lastList.length;
+  document.getElementById("tableCount").textContent = shown + " paiement" + (shown > 1 ? "s" : "");
+
+  if (!shown) {
+    const hasFilter = document.getElementById("patientSearch").dataset.patientId ||
+      document.getElementById("statutFilter").value ||
+      document.getElementById("modeFilter").value ||
+      document.getElementById("dateFrom").value ||
+      document.getElementById("dateTo").value;
+    body.innerHTML = '<div class="empty">' + (hasFilter
+      ? 'Aucun paiement ne correspond aux filtres.'
+      : 'Aucun paiement enregistré.') + '</div>';
+    updatePager();
+    return;
+  }
+
+  let html = '<table class="data"><thead><tr>' +
+    '<th>Date</th><th>Patient</th><th class="num">Montant</th><th>Mode</th><th>Statut</th><th class="num">Remise</th><th>Motif</th>' +
+    '</tr></thead><tbody>';
+  lastList.forEach(p => {
+    const d = p.date_paiement ? new Date(p.date_paiement).toLocaleDateString("fr-FR") : "—";
+    const mode = MODE_LABELS[p.mode] || p.mode;
+    const statut = STATUT_LABELS[p.statut] || p.statut;
+    const statutTag = STATUT_TAG[p.statut] || "gray";
+    html += '<tr onclick="openDetail(' + p.id + ')">' +
+      '<td>' + d + '</td>' +
+      '<td>' + patientCell(p.patient_id) + '</td>' +
+      '<td class="num">' + fmtFCFA(p.montant) + '</td>' +
+      '<td>' + escapeHtml(mode) + '</td>' +
+      '<td><span class="tag ' + statutTag + '">' + escapeHtml(statut) + '</span></td>' +
+      '<td class="num">' + (p.remise_appliquee ? fmtFCFA(p.remise_appliquee) : '—') + '</td>' +
+      '<td style="max-width:200px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
+        (p.motif_remboursement ? escapeHtml(p.motif_remboursement) : '—') + '</td>' +
+    '</tr>';
+  });
+  html += '</tbody></table>';
+  body.innerHTML = html;
+  updatePager();
+}
+
+function updatePager() {
+  const startIdx = currentPage * PAGE_SIZE + 1;
+  const endIdx = startIdx + lastList.length - 1;
+  document.getElementById("pagerInfo").textContent = totalAll
+    ? ("Affichage " + Math.max(startIdx, 0) + "–" + Math.max(endIdx, 0) + " sur " + fmtNum(totalAll))
+    : "—";
+  document.getElementById("prevBtn").disabled = currentPage <= 0;
+  document.getElementById("nextBtn").disabled = (currentPage + 1) * PAGE_SIZE >= totalAll;
+}
+
+function changePage(delta) {
+  const np = currentPage + delta;
+  if (np < 0) return;
+  if (np * PAGE_SIZE >= totalAll) return;
+  currentPage = np;
+  loadPaiements();
+}
+
+function onFilterChange() {
+  currentPage = 0;
+  loadPaiements();
+}
+
+function resetFilters() {
+  document.getElementById("statutFilter").value = "";
+  document.getElementById("modeFilter").value = "";
+  document.getElementById("dateFrom").value = "";
+  document.getElementById("dateTo").value = "";
+  clearPatientFilter();
+  currentPage = 0;
+  loadPaiements();
+}
+
+/* ------------------------------------------------------------------ */
+/*  Recherche patient (filtre principal)                              */
+/* ------------------------------------------------------------------ */
+const patientSearch = document.getElementById("patientSearch");
+const patientDropdown = document.getElementById("patientDropdown");
+
+patientSearch.addEventListener("input", () => {
+  const q = patientSearch.value.trim();
+  clearTimeout(searchTimer);
+  if (!q) { patientDropdown.classList.remove("show"); return; }
+  searchTimer = setTimeout(() => doPatientSearch(q, patientDropdown, "filter"), 280);
+});
+patientSearch.addEventListener("keydown", e => {
+  if (e.key === "Escape") patientDropdown.classList.remove("show");
+});
+document.addEventListener("click", e => {
+  if (!e.target.closest("#patientSearch") && !e.target.closest("#patientDropdown"))
+    patientDropdown.classList.remove("show");
+  if (!e.target.closest("#npPatient") && !e.target.closest("#npDropdown"))
+    document.getElementById("npDropdown").classList.remove("show");
+});
+
+async function doPatientSearch(q, dropdownEl, mode) {
+  const reqId = ++lastReq;
+  dropdownEl.innerHTML = '<div class="dd-loading">Recherche en cours…</div>';
+  dropdownEl.classList.add("show");
+  try {
+    const data = await apiGet("/patients/search?q=" + encodeURIComponent(q) + "&limit=20");
+    if (reqId !== lastReq) return;
+    renderPatientDropdown(data, dropdownEl, mode);
+  } catch (e) {
+    if (e.message !== "401")
+      dropdownEl.innerHTML = '<div class="dd-empty">Erreur : ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function renderPatientDropdown(data, dropdownEl, mode) {
+  if (!data.patients || !data.patients.length) {
+    dropdownEl.innerHTML = '<div class="dd-empty">Aucun patient trouvé pour « ' + escapeHtml(data.query) + ' ».</div>';
+    return;
+  }
+  let html = '<div style="padding:8px 14px; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid var(--border);">' +
+    data.total + ' résultat' + (data.total > 1 ? 's' : '') + '</div>';
+  data.patients.forEach(p => {
+    patientNameCache.set(p.id, { nom: p.nom, prenom: p.prenom, status: p.status, telephone: p.telephone, matricule: p.matricule });
+    const meta = [];
+    if (p.telephone) meta.push('☎ ' + escapeHtml(p.telephone));
+    if (p.matricule) meta.push('№ ' + escapeHtml(p.matricule));
+    const onclick = mode === "filter"
+      ? "selectFilterPatient(" + p.id + ")"
+      : "selectNewPatient(" + p.id + ")";
+    html += '<div class="dd-item" onclick="' + onclick + '">' +
+      '<div class="dd-avatar">' + escapeHtml(initiales(p)) + '</div>' +
+      '<div class="dd-main"><div class="dd-name">' + escapeHtml(p.prenom + ' ' + p.nom) + '</div>' +
+      '<div class="dd-meta">' + meta.join(' · ') + '</div></div></div>';
+  });
+  dropdownEl.innerHTML = html;
+}
+
+function selectFilterPatient(id) {
+  const p = patientNameCache.get(id);
+  patientDropdown.classList.remove("show");
+  patientSearch.value = p ? (p.prenom + " " + p.nom).trim() : ("Patient #" + id);
+  patientSearch.dataset.patientId = id;
+  const banner = document.getElementById("filterBanner");
+  banner.classList.add("show");
+  document.getElementById("filterBannerText").textContent = p
+    ? ((p.prenom + " " + p.nom).trim() + " (#" + id + ")")
+    : ("Patient #" + id);
+  currentPage = 0;
+  loadPaiements();
+}
+
+function clearPatientFilter() {
+  patientSearch.value = "";
+  delete patientSearch.dataset.patientId;
+  document.getElementById("filterBanner").classList.remove("show");
+  currentPage = 0;
+  loadPaiements();
+}
+
+/* ------------------------------------------------------------------ */
+/*  Nouveau paiement                                                  */
+/* ------------------------------------------------------------------ */
+const npPatient = document.getElementById("npPatient");
+const npDropdown = document.getElementById("npDropdown");
+
+npPatient.addEventListener("input", () => {
+  const q = npPatient.value.trim();
+  clearTimeout(npSearchTimer);
+  if (!q) { npDropdown.classList.remove("show"); return; }
+  npSearchTimer = setTimeout(() => doPatientSearch(q, npDropdown, "new"), 280);
+});
+npPatient.addEventListener("keydown", e => {
+  if (e.key === "Escape") npDropdown.classList.remove("show");
+});
+
+function openNewPaiement() {
+  npSelectedPatient = null;
+  npPatient.value = "";
+  npPatient.disabled = false;
+  document.getElementById("npPatientTag").style.display = "none";
+  document.getElementById("npConsult").innerHTML = '<option value="">— Aucune —</option>';
+  document.getElementById("npConsult").disabled = true;
+  document.getElementById("npMontant").value = "";
+  document.getElementById("npMode").value = "especes";
+  document.getElementById("npStatut").value = "effectue";
+  document.getElementById("newMsg").textContent = "";
+  document.getElementById("newOverlay").classList.remove("hidden");
+  npPatient.focus();
+}
+function closeNewPaiement() {
+  document.getElementById("newOverlay").classList.add("hidden");
+}
+
+function selectNewPatient(id) {
+  const p = patientNameCache.get(id);
+  npDropdown.classList.remove("show");
+  npSelectedPatient = id;
+  npPatient.value = p ? (p.prenom + " " + p.nom).trim() : ("Patient #" + id);
+  npPatient.disabled = true;
+  const tag = document.getElementById("npPatientTag");
+  tag.style.display = "block";
+  tag.innerHTML = '<span class="tag blue">Patient #' + id + (p ? ' — ' + escapeHtml((p.prenom + " " + p.nom).trim()) : '') +
+    '</span> <a href="#" onclick="resetNewPatient(); return false;" style="font-size:12px; color:var(--brand-2);">changer</a>';
+  loadNewPatientConsultations(id);
+}
+
+function resetNewPatient() {
+  npSelectedPatient = null;
+  npPatient.value = "";
+  npPatient.disabled = false;
+  document.getElementById("npPatientTag").style.display = "none";
+  document.getElementById("npConsult").innerHTML = '<option value="">— Aucune —</option>';
+  document.getElementById("npConsult").disabled = true;
+  document.getElementById("npMontant").value = "";
+  npPatient.focus();
+}
+
+async function loadNewPatientConsultations(patientId) {
+  const sel = document.getElementById("npConsult");
+  sel.innerHTML = '<option value="">Chargement…</option>';
+  sel.disabled = true;
+  try {
+    const data = await apiGet("/consultations?patient_id=" + patientId + "&limit=50");
+    let html = '<option value="">— Aucune —</option>';
+    (data.consultations || []).forEach(c => {
+      const d = c.created_at ? new Date(c.created_at).toLocaleDateString("fr-FR") : "—";
+      const t = CONSULT_LABELS[c.type] || c.type;
+      html += '<option value="' + c.id + '" data-montant="' + (c.montant || 0) + '">' +
+        escapeHtml(t) + ' · ' + d + ' · ' + fmtFCFA(c.montant) + '</option>';
+    });
+    sel.innerHTML = html;
+    sel.disabled = false;
+  } catch (e) {
+    sel.innerHTML = '<option value="">— Aucune —</option>';
+    sel.disabled = false;
+    if (e.message !== "401") toast("Consultations introuvables : " + e.message);
+  }
+}
+
+// Pré-remplir le montant quand on choisit une consultation
+document.getElementById("npConsult").addEventListener("change", e => {
+  const opt = e.target.selectedOptions[0];
+  if (opt && opt.dataset.montant) {
+    document.getElementById("npMontant").value = opt.dataset.montant;
+  }
+});
+
+async function submitNewPaiement() {
+  const msg = document.getElementById("newMsg");
+  msg.textContent = "";
+  msg.className = "form-msg";
+  if (!npSelectedPatient) { msg.textContent = "Veuillez sélectionner un patient."; return; }
+  const montant = parseInt(document.getElementById("npMontant").value, 10);
+  if (isNaN(montant) || montant < 0) { msg.textContent = "Montant invalide."; return; }
+  const consultationId = document.getElementById("npConsult").value || null;
+  const body = {
+    patient_id: npSelectedPatient,
+    consultation_id: consultationId ? parseInt(consultationId, 10) : null,
+    montant: montant,
+    mode: document.getElementById("npMode").value,
+    statut: document.getElementById("npStatut").value,
+  };
+  const btn = document.getElementById("newSubmit");
+  btn.disabled = true;
+  try {
+    await apiPost("/paiements", body);
+    closeNewPaiement();
+    toast("Paiement encaissé avec succès.");
+    await loadAll();
+  } catch (e) {
+    if (e.message !== "401") msg.textContent = "Erreur : " + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Détail d'un paiement                                              */
+/* ------------------------------------------------------------------ */
+async function openDetail(id) {
+  const overlay = document.getElementById("detailOverlay");
+  const content = document.getElementById("detailContent");
+  content.className = "skel";
+  content.textContent = "Chargement du paiement…";
+  overlay.classList.remove("hidden");
+  try {
+    const p = await apiGet("/paiements/" + id);
+    currentDetail = p;
+    // résoudre le nom du patient
+    if (!patientNameCache.has(p.patient_id)) {
+      try {
+        const pat = await apiGet("/patients/" + p.patient_id);
+        patientNameCache.set(p.patient_id, { nom: pat.nom, prenom: pat.prenom, status: pat.status, telephone: pat.telephone, matricule: pat.matricule });
+      } catch (_) { patientNameCache.set(p.patient_id, { nom: "—", prenom: "" }); }
+    }
+    renderDetail(p);
+  } catch (e) {
+    if (e.message !== "401") {
+      content.className = "";
+      content.innerHTML = '<div class="empty" style="color:var(--red);">Erreur : ' + escapeHtml(e.message) + '</div>';
+    }
+  }
+}
+
+function closeDetail() {
+  document.getElementById("detailOverlay").classList.add("hidden");
+  currentDetail = null;
+}
+
+function renderDetail(p) {
+  const content = document.getElementById("detailContent");
+  content.className = "";
+  const pat = patientNameCache.get(p.patient_id);
+  const patName = pat ? (pat.prenom + " " + pat.nom).trim() : ("Patient #" + p.patient_id);
+  const d = p.date_paiement ? new Date(p.date_paiement).toLocaleString("fr-FR") : "—";
+  const statut = STATUT_LABELS[p.statut] || p.statut;
+  const statutTag = STATUT_TAG[p.statut] || "gray";
+  const mode = MODE_LABELS[p.mode] || p.mode;
+
+  // Actions selon le statut
+  let actions = "";
+  if (p.statut === "effectue" || p.statut === "differe") {
+    actions += '<button class="btn danger" onclick="startRembourser(' + p.id + ')">↩ Rembourser</button>';
+  }
+  if (p.statut === "effectue") {
+    actions += '<button class="btn ghost" onclick="startDifferer(' + p.id + ')">⏳ Différer</button>';
+  }
+  if (p.statut === "differe") {
+    actions += '<button class="btn" onclick="regulariser(' + p.id + ')">✓ Régulariser</button>';
+  }
+  actions += '<button class="btn ghost" onclick="startEdit(' + p.id + ')">✎ Modifier</button>';
+  actions += '<button class="btn ghost" onclick="confirmDelete(' + p.id + ')">🗑 Supprimer</button>';
+
+  content.innerHTML =
+    '<div class="detail-head">' +
+      '<div class="big">' + escapeHtml(initiales(pat || {})) + '</div>' +
+      '<div class="info"><div class="t">' + escapeHtml(patName) + '</div>' +
+      '<div class="s">Paiement #' + p.id + ' · <span class="tag ' + statutTag + '">' + escapeHtml(statut) + '</span></div></div>' +
+      '<button class="btn ghost" onclick="closeDetail()">Fermer</button>' +
+    '</div>' +
+    '<table class="detail-table">' +
+      rowInfo("Montant", '<b style="font-size:15px;">' + fmtFCFA(p.montant) + '</b>') +
+      rowInfo("Mode", escapeHtml(mode)) +
+      rowInfo("Statut", '<span class="tag ' + statutTag + '">' + escapeHtml(statut) + '</span>') +
+      rowInfo("Date", d) +
+      rowInfo("Patient", escapeHtml(patName) + ' <span class="pid" style="color:var(--muted);">(#' + p.patient_id + ')</span>') +
+      rowInfo("Consultation", p.consultation_id ? ('#' + p.consultation_id) : '—') +
+      rowInfo("Remise appliquée", p.remise_appliquee ? fmtFCFA(p.remise_appliquee) : '—') +
+      rowInfo("Motif remboursement", p.motif_remboursement ? escapeHtml(p.motif_remboursement) : '—') +
+    '</table>' +
+    '<div class="detail-actions">' + actions + '</div>';
+}
+
+function rowInfo(label, value) {
+  return '<tr><th>' + escapeHtml(label) + '</th><td>' + (value == null ? "—" : value) + '</td></tr>';
+}
+
+/* ------------------------------------------------------------------ */
+/*  Actions : rembourser / différer / régulariser / éditer / supprimer*/
+/* ------------------------------------------------------------------ */
+function startRembourser(id) {
+  actionTargetId = id;
+  document.getElementById("rembMotif").value = "";
+  document.getElementById("rembMsg").textContent = "";
+  document.getElementById("rembOverlay").classList.remove("hidden");
+  closeDetail();
+}
+function closeRemboursement() {
+  document.getElementById("rembOverlay").classList.add("hidden");
+}
+async function confirmRembourser() {
+  const msg = document.getElementById("rembMsg");
+  const motif = document.getElementById("rembMotif").value.trim();
+  msg.textContent = ""; msg.className = "form-msg";
+  if (motif.length < 3) { msg.textContent = "Le motif doit comporter au moins 3 caractères."; return; }
+  const btn = document.getElementById("rembSubmit"); btn.disabled = true;
+  try {
+    await apiPost("/paiements/" + actionTargetId + "/rembourser", { motif: motif });
+    closeRemboursement();
+    toast("Paiement remboursé.");
+    await loadAll();
+    openDetail(actionTargetId);
+  } catch (e) {
+    if (e.message !== "401") msg.textContent = "Erreur : " + e.message;
+  } finally { btn.disabled = false; }
+}
+
+function startDifferer(id) {
+  actionTargetId = id;
+  document.getElementById("diffMotif").value = "";
+  document.getElementById("diffMsg").textContent = "";
+  document.getElementById("diffOverlay").classList.remove("hidden");
+  closeDetail();
+}
+function closeDifferer() {
+  document.getElementById("diffOverlay").classList.add("hidden");
+}
+async function confirmDifferer() {
+  const msg = document.getElementById("diffMsg");
+  const motif = document.getElementById("diffMotif").value.trim();
+  msg.textContent = ""; msg.className = "form-msg";
+  const btn = document.getElementById("diffSubmit"); btn.disabled = true;
+  try {
+    const body = motif ? { motif: motif } : {};
+    await apiPost("/paiements/" + actionTargetId + "/differer", body);
+    closeDifferer();
+    toast("Paiement différé.");
+    await loadAll();
+    openDetail(actionTargetId);
+  } catch (e) {
+    if (e.message !== "401") msg.textContent = "Erreur : " + e.message;
+  } finally { btn.disabled = false; }
+}
+
+async function regulariser(id) {
+  closeDetail();
+  try {
+    await apiPost("/paiements/" + id + "/regulariser");
+    toast("Paiement régularisé (encaissé).");
+    await loadAll();
+    openDetail(id);
+  } catch (e) {
+    if (e.message !== "401") toast("Erreur : " + e.message);
+  }
+}
+
+function startEdit(id) {
+  if (!currentDetail) return;
+  const p = currentDetail;
+  actionTargetId = id;
+  document.getElementById("edMontant").value = p.montant;
+  document.getElementById("edMode").value = p.mode;
+  document.getElementById("editMsg").textContent = "";
+  document.getElementById("editOverlay").classList.remove("hidden");
+  closeDetail();
+}
+function closeEdit() {
+  document.getElementById("editOverlay").classList.add("hidden");
+}
+async function confirmEdit() {
+  const msg = document.getElementById("editMsg");
+  msg.textContent = ""; msg.className = "form-msg";
+  const montant = document.getElementById("edMontant").value;
+  const mode = document.getElementById("edMode").value;
+  if (montant === "" && !mode) { msg.textContent = "Renseignez au moins un champ à modifier."; return; }
+  const btn = document.getElementById("editSubmit"); btn.disabled = true;
+  try {
+    let q = "/paiements/" + actionTargetId + "?";
+    const params = [];
+    if (montant !== "") params.push("montant=" + encodeURIComponent(parseInt(montant, 10)));
+    if (mode) params.push("mode=" + encodeURIComponent(mode));
+    q += params.join("&");
+    await apiPutQuery(q);
+    closeEdit();
+    toast("Paiement modifié.");
+    await loadAll();
+    openDetail(actionTargetId);
+  } catch (e) {
+    if (e.message !== "401") msg.textContent = "Erreur : " + e.message;
+  } finally { btn.disabled = false; }
+}
+
+async function confirmDelete(id) {
+  if (!confirm("Supprimer définitivement le paiement #" + id + " ?")) return;
+  closeDetail();
+  try {
+    await apiDelete("/paiements/" + id);
+    toast("Paiement supprimé.");
+    await loadAll();
+  } catch (e) {
+    if (e.message !== "401") toast("Erreur : " + e.message);
+  }
+}
+
+// Fermer une modale au clic sur l'overlay (hors carte)
+document.querySelectorAll(".overlay").forEach(ov => {
+  ov.addEventListener("click", e => {
+    if (e.target === ov) {
+      ov.classList.add("hidden");
+    }
+  });
+});
+// Échap ferme la modale ouverte
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".overlay:not(.hidden)").forEach(ov => ov.classList.add("hidden"));
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/*  Initialisation                                                    */
+/* ------------------------------------------------------------------ */
+if (checkAuth()) {
+  loadAll();
+}
+</script>
+</body>
+</html>

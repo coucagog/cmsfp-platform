@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CMSFP — Conseil de santé</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --bg-2: #1e293b;
+    --card: #ffffff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --brand: #0ea5e9;
+    --brand-2: #2563eb;
+    --green: #16a34a;
+    --amber: #d97706;
+    --red: #dc2626;
+    --border: #e2e8f0;
+    --shadow: 0 10px 30px rgba(2, 6, 23, .12);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ---- Topbar (identique au dashboard) ---- */
+  .topbar {
+    background: rgba(15, 23, 42, .9);
+    backdrop-filter: blur(6px);
+    color: #fff;
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .topbar .brand { display: flex; align-items: center; gap: 12px; }
+  .topbar .logo {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    display: grid; place-items: center; font-weight: 800; color: #fff;
+    box-shadow: 0 6px 18px rgba(14,165,233,.45);
+  }
+  .topbar h1 { font-size: 18px; margin: 0; font-weight: 700; }
+  .topbar .sub { font-size: 12px; color: #94a3b8; }
+  .topbar .right { display: flex; align-items: center; gap: 14px; }
+  .pill {
+    background: rgba(255,255,255,.08);
+    color: #cbd5e1;
+    border: 1px solid rgba(255,255,255,.12);
+    padding: 6px 12px; border-radius: 999px; font-size: 12px;
+  }
+  .pill.ok { background: rgba(22,163,74,.18); color: #bbf7d0; border-color: rgba(22,163,74,.4); }
+  button.btn {
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff; border: none; border-radius: 10px;
+    padding: 9px 16px; font-weight: 600; cursor: pointer; font-size: 13px;
+    box-shadow: 0 6px 16px rgba(37,99,235,.35);
+    transition: transform .08s ease, opacity .2s ease;
+  }
+  button.btn:hover { transform: translateY(-1px); }
+  button.btn:active { transform: translateY(0); }
+  button.btn.ghost {
+    background: rgba(255,255,255,.08); color: #e2e8f0;
+    box-shadow: none; border: 1px solid rgba(255,255,255,.15);
+  }
+  button.btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* ---- Cartes & grilles (identiques au dashboard) ---- */
+  .grid {
+    display: grid; gap: 18px;
+    grid-template-columns: repeat(12, 1fr);
+  }
+  .card {
+    background: var(--card); border-radius: 16px; padding: 18px 20px;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+  }
+  .card h3 { margin: 0 0 4px; font-size: 15px; }
+  .card .desc { color: var(--muted); font-size: 12px; margin: 0 0 14px; }
+  .col-8 { grid-column: span 8; }
+  .col-6 { grid-column: span 6; }
+  .col-4 { grid-column: span 4; }
+  .col-12 { grid-column: span 12; }
+  @media (max-width: 980px) {
+    .col-8, .col-6, .col-4 { grid-column: span 12; }
+  }
+
+  .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .refresh-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .err-banner { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; display: none; }
+
+  /* ---- KPI ---- */
+  .kpi-grid {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    margin-bottom: 22px;
+  }
+  .kpi {
+    background: var(--card); border-radius: 16px; padding: 16px 18px;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+    position: relative; overflow: hidden; cursor: pointer;
+    transition: transform .08s ease, box-shadow .2s ease;
+  }
+  .kpi:hover { transform: translateY(-2px); }
+  .kpi.active { outline: 2px solid var(--brand-2); outline-offset: 2px; }
+  .kpi .label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .kpi .value { font-size: 24px; font-weight: 800; margin-top: 4px; }
+  .kpi .accent { position: absolute; right: -16px; top: -16px; width: 60px; height: 60px; border-radius: 50%; opacity: .14; }
+
+  /* ---- Champs de formulaire ---- */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .field label .req { color: var(--red); }
+  .field select, .field input, .field textarea {
+    width: 100%; padding: 11px 13px; border: 1px solid var(--border);
+    border-radius: 10px; font-size: 14px; outline: none; background: #fff;
+    color: var(--ink); font-family: inherit;
+  }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .field select:focus, .field input:focus, .field textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(14,165,233,.15); }
+  .field .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .field.error input, .field.error select, .field.error textarea { border-color: var(--red); }
+  .field .err-msg { font-size: 11px; color: var(--red); margin-top: 4px; display: none; }
+  .field.error .err-msg { display: block; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  @media (max-width: 560px) { .form-grid { grid-template-columns: 1fr; } }
+
+  /* ---- Autocomplete patient ---- */
+  .ac-wrap { position: relative; }
+  .ac-results {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 30;
+    background: #fff; border: 1px solid var(--border); border-top: none;
+    border-radius: 0 0 10px 10px; box-shadow: var(--shadow);
+    max-height: 240px; overflow-y: auto; display: none;
+  }
+  .ac-results.show { display: block; }
+  .ac-item { padding: 9px 13px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+  .ac-item:hover, .ac-item.active { background: #eff6ff; }
+  .ac-item .nm { font-weight: 600; }
+  .ac-item .mt { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .ac-empty { padding: 10px 13px; font-size: 12px; color: var(--muted); }
+
+  /* ---- Tableaux ---- */
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.center, th.center { text-align: center; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: #f8fafc; }
+  .muted-cell { color: var(--muted); }
+  .truncate { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ---- Tags ---- */
+  .tag { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .tag.green { background: #dcfce7; color: #15803d; }
+  .tag.red { background: #fee2e2; color: #b91c1c; }
+  .tag.gray { background: #f1f5f9; color: #475569; }
+  .tag.blue { background: #dbeafe; color: #1d4ed8; }
+  .tag.amber { background: #fef3c7; color: #b45309; }
+  .tag.purple { background: #f3e8ff; color: #7e22ce; }
+
+  /* ---- Segment filter ---- */
+  .seg {
+    display: inline-flex; background: #f1f5f9; border-radius: 10px; padding: 4px; gap: 2px; flex-wrap: wrap;
+  }
+  .seg button {
+    border: none; background: transparent; padding: 7px 12px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer; color: var(--muted); white-space: nowrap;
+  }
+  .seg button.active { background: #fff; color: var(--brand-2); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  .seg button .cnt { font-size: 10px; opacity: .7; margin-left: 3px; }
+
+  /* ---- Pagination ---- */
+  .pager { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; flex-wrap: wrap; gap: 10px; }
+  .pager .info { font-size: 12px; color: var(--muted); }
+  .pager .nav { display: flex; gap: 8px; }
+  .pager button { background: #f1f5f9; border: 1px solid var(--border); border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--ink); }
+  .pager button:disabled { opacity: .45; cursor: not-allowed; }
+
+  .empty { color: var(--muted); font-size: 13px; padding: 28px 18px; text-align: center; }
+  .skel { color: var(--muted); font-size: 13px; padding: 12px; }
+  footer { color: #94a3b8; text-align: center; font-size: 12px; margin-top: 30px; }
+
+  /* ---- Overlay / modale ---- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(2,6,23,.7);
+    display: grid; place-items: center; z-index: 50;
+    backdrop-filter: blur(4px); padding: 20px;
+  }
+  .overlay.hidden { display: none; }
+  .modal {
+    background: var(--card); border-radius: 18px; padding: 26px;
+    width: min(720px, 96vw); max-height: 92vh; overflow-y: auto; box-shadow: var(--shadow);
+  }
+  .modal.lg { width: min(880px, 96vw); }
+  .modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+  .modal-head h2 { margin: 0; font-size: 19px; }
+  .modal-head .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .modal-close { background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 16px; color: var(--muted); flex-shrink: 0; }
+  .modal-close:hover { background: #e2e8f0; }
+  .modal-msg { font-size: 13px; padding: 10px 12px; border-radius: 10px; margin-bottom: 14px; display: none; }
+  .modal-msg.err { display: block; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
+  .modal-msg.ok { display: block; background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+
+  /* ---- Stepper (barre de progression du circuit) ---- */
+  .stepper { display: flex; align-items: flex-start; margin: 8px 0 6px; }
+  .step { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; min-width: 0; }
+  .step .dot {
+    width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 13px; font-weight: 800; z-index: 2; background: #fff; border: 2px solid var(--border); color: var(--muted);
+    transition: all .2s ease;
+  }
+  .step.done .dot { background: var(--green); border-color: var(--green); color: #fff; }
+  .step.active .dot { background: var(--brand-2); border-color: var(--brand-2); color: #fff; box-shadow: 0 0 0 4px rgba(37,99,235,.18); }
+  .step .lbl { font-size: 10px; color: var(--muted); margin-top: 6px; text-align: center; line-height: 1.25; font-weight: 600; }
+  .step.done .lbl, .step.active .lbl { color: var(--ink); }
+  .step::before {
+    content: ""; position: absolute; top: 15px; left: -50%; width: 100%; height: 2px; background: var(--border); z-index: 1;
+  }
+  .step:first-child::before { display: none; }
+  .step.done::before { background: var(--green); }
+  @media (max-width: 640px) {
+    .stepper { flex-wrap: wrap; gap: 10px; }
+    .step { flex: 1 1 30%; }
+    .step::before { display: none; }
+  }
+
+  /* ---- Détail : blocs d'info ---- */
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; margin: 6px 0 4px; }
+  @media (max-width: 560px) { .detail-grid { grid-template-columns: 1fr; } }
+  .detail-grid .it { font-size: 13px; }
+  .detail-grid .it .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; font-weight: 600; }
+  .detail-grid .it .v { margin-top: 2px; }
+  .detail-section { margin-top: 18px; }
+  .detail-section > h4 { margin: 0 0 8px; font-size: 13px; color: var(--ink); }
+  .obs-box { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 12px; white-space: pre-wrap; color: #334155; max-height: 160px; overflow-y: auto; }
+  .timeline { display: flex; flex-direction: column; gap: 8px; }
+  .timeline .tl { display: flex; gap: 10px; font-size: 12px; align-items: baseline; }
+  .timeline .tl .dt { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .timeline .tl .lb { font-weight: 600; }
+  .timeline .tl.pending .lb { color: var(--muted); font-weight: 500; }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: var(--muted); margin-top: 12px; }
+  .row-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">CMS</div>
+    <div>
+      <h1>CMSFP — Conseil de santé</h1>
+      <div class="sub">Centre Médico-Social de la Fonction Publique · Circuit d'évacuation sanitaire</div>
+    </div>
+  </div>
+  <div class="right">
+    <span id="sessionPill" class="pill">Non connecté</span>
+    <a class="btn ghost" href="/dashboard" style="text-decoration:none">← Tableau de bord</a>
+    <button class="btn ghost" id="refreshBtn" onclick="loadAll()" disabled>↻ Actualiser</button>
+    <button class="btn ghost" id="logoutBtn" onclick="logout()" style="display:none">Déconnexion</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="errBanner" class="err-banner"></div>
+
+  <!-- KPI par statut (clic = filtre) -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi" data-statut="soumis" onclick="filterBy('soumis')">
+      <div class="accent" style="background:var(--muted)"></div>
+      <div class="label">Soumis</div>
+      <div class="value" id="cnt-soumis">—</div>
+    </div>
+    <div class="kpi" data-statut="etude" onclick="filterBy('etude')">
+      <div class="accent" style="background:var(--brand)"></div>
+      <div class="label">Étude</div>
+      <div class="value" id="cnt-etude">—</div>
+    </div>
+    <div class="kpi" data-statut="ventile" onclick="filterBy('ventile')">
+      <div class="accent" style="background:var(--brand-2)"></div>
+      <div class="label">Ventilés</div>
+      <div class="value" id="cnt-ventile">—</div>
+    </div>
+    <div class="kpi" data-statut="evacue" onclick="filterBy('evacue')">
+      <div class="accent" style="background:var(--amber)"></div>
+      <div class="label">Évacués</div>
+      <div class="value" id="cnt-evacue">—</div>
+    </div>
+    <div class="kpi" data-statut="retour" onclick="filterBy('retour')">
+      <div class="accent" style="background:var(--amber)"></div>
+      <div class="label">Retour</div>
+      <div class="value" id="cnt-retour">—</div>
+    </div>
+    <div class="kpi" data-statut="controle_tresor" onclick="filterBy('controle_tresor')">
+      <div class="accent" style="background:#9333ea"></div>
+      <div class="label">Contrôle Trésor</div>
+      <div class="value" id="cnt-controle_tresor">—</div>
+    </div>
+    <div class="kpi" data-statut="cloture" onclick="filterBy('cloture')">
+      <div class="accent" style="background:var(--green)"></div>
+      <div class="label">Clôturés</div>
+      <div class="value" id="cnt-cloture">—</div>
+    </div>
+  </div>
+
+  <!-- Filtre par statut -->
+  <div class="card col-12" style="margin-bottom:18px">
+    <div class="refresh-row" style="margin-bottom:12px">
+      <div>
+        <h3>🗂️ Dossiers du circuit</h3>
+        <p class="desc" style="margin:0">Évacuations sanitaires des agents de l'État. Cliquez sur une ligne pour le détail et le suivi du circuit.</p>
+      </div>
+      <div class="row-actions">
+        <span id="listCount" class="pill">—</span>
+        <button class="btn" onclick="openCreateModal()">＋ Nouveau dossier</button>
+      </div>
+    </div>
+    <div class="seg" id="statutSeg">
+      <button data-statut="" class="active">Tous</button>
+      <button data-statut="soumis">Soumis</button>
+      <button data-statut="etude">Étude</button>
+      <button data-statut="ventile">Ventilé</button>
+      <button data-statut="evacue">Évacué</button>
+      <button data-statut="retour">Retour</button>
+      <button data-statut="controle_tresor">Contrôle Trésor</button>
+      <button data-statut="cloture">Clôturé</button>
+    </div>
+    <div class="table-scroll" style="margin-top:14px">
+      <div id="listBody" class="skel">Chargement…</div>
+    </div>
+    <div class="pager" id="pager" style="display:none">
+      <div class="info" id="pagerInfo">—</div>
+      <div class="nav">
+        <button id="prevBtn" onclick="changePage(-1)">← Précédent</button>
+        <button id="nextBtn" onclick="changePage(1)">Suivant →</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>CMSFP Platform — Conseil de santé · Circuit : soumis → étude → ventilé → évacué → retour → contrôle_trésor → clôturé · Authentification JWT</footer>
+</div>
+
+<!-- Modale : détail d'un dossier -->
+<div class="overlay hidden" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+  <div class="modal lg">
+    <div class="modal-head">
+      <div>
+        <h2 id="detTitle">Dossier —</h2>
+        <div class="sub" id="detSub">—</div>
+      </div>
+      <button class="modal-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div id="detMsg" class="modal-msg"></div>
+
+    <!-- Barre de progression du circuit -->
+    <div class="stepper" id="stepper"></div>
+
+    <div class="detail-section">
+      <h4>Informations du dossier</h4>
+      <div class="detail-grid" id="detGrid"></div>
+    </div>
+
+    <div class="detail-section" id="detTimelineSec">
+      <h4>Chronologie du circuit</h4>
+      <div class="timeline" id="detTimeline"></div>
+    </div>
+
+    <div class="detail-section" id="detObsSec" style="display:none">
+      <h4>Observations</h4>
+      <div class="obs-box" id="detObs"></div>
+    </div>
+
+    <!-- Formulaire de transition -->
+    <div class="detail-section" id="detTransitionSec">
+      <h4 id="transTitle">Avancer le dossier</h4>
+      <div id="transDesc" style="font-size:12px;color:var(--muted);margin-bottom:12px"></div>
+      <div id="transFields"></div>
+      <div class="modal-actions">
+        <button class="btn" id="transBtn" onclick="submitTransition()">Avancer à l'étape suivante →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modale : création d'un dossier -->
+<div class="overlay hidden" id="createOverlay" onclick="if(event.target===this)closeCreate()">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h2>＋ Nouveau dossier</h2>
+        <div class="sub">Le dossier sera créé au statut <strong>soumis</strong>.</div>
+      </div>
+      <button class="modal-close" onclick="closeCreate()">✕</button>
+    </div>
+    <div id="createMsg" class="modal-msg"></div>
+
+    <div class="field">
+      <label for="patientSearch">Rechercher un patient <span style="color:var(--muted);font-weight:500">(optionnel)</span></label>
+      <div class="ac-wrap">
+        <input id="patientSearch" type="text" placeholder="Nom, prénom, téléphone ou matricule…" autocomplete="off" />
+        <div class="ac-results" id="acResults"></div>
+      </div>
+      <div class="hint" id="patientHint">Saisissez pour rechercher un agent enregistré, ou remplissez les champs ci-dessous manuellement.</div>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="fNom">Nom du patient <span class="req">*</span></label>
+        <input id="fNom" type="text" maxlength="100" />
+        <div class="err-msg">Le nom est obligatoire.</div>
+      </div>
+      <div class="field">
+        <label for="fPrenom">Prénom du patient <span class="req">*</span></label>
+        <input id="fPrenom" type="text" maxlength="100" />
+        <div class="err-msg">Le prénom est obligatoire.</div>
+      </div>
+      <div class="field">
+        <label for="fMatricule">Matricule de l'agent</label>
+        <input id="fMatricule" type="text" maxlength="50" />
+      </div>
+      <div class="field">
+        <label for="fMontant">Montant estimé (FCFA)</label>
+        <input id="fMontant" type="number" min="0" step="1" placeholder="ex. 5000000" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="fMotif">Motif de la demande d'évacuation <span class="req">*</span></label>
+      <textarea id="fMotif" placeholder="Pathologie, soins requis, justification de l'évacuation…" maxlength="2000"></textarea>
+      <div class="err-msg">Le motif est obligatoire (3 caractères minimum).</div>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="fSpecialiste">Spécialiste</label>
+        <input id="fSpecialiste" type="text" maxlength="200" placeholder="Peut être renseigné à l'étape ventilation" />
+      </div>
+      <div class="field">
+        <label for="fDestination">Destination</label>
+        <input id="fDestination" type="text" maxlength="200" placeholder="Pays/ville de prise en charge" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="fObs">Observations</label>
+      <textarea id="fObs" placeholder="Remarques libres…" maxlength="2000"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeCreate()">Annuler</button>
+      <button class="btn" id="createBtn" onclick="submitCreate()">Créer le dossier</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================== */
+/*  Configuration & état                                              */
+/* ================================================================== */
+const API_BASE = window.location.origin + "/api/v1";
+let TOKEN = null;
+
+// État applicatif
+let CURRENT_STATUT = "";      // filtre actif ("" = tous)
+let PAGE_SKIP = 0;
+const PAGE_LIMIT = 50;
+let LIST_TOTAL = 0;
+let CURRENT_DETAIL = null;    // dossier affiché en détail
+let SELECTED_PATIENT_ID = null;
+
+// Circuit métier (machine à états linéaire)
+// Les clés correspondent aux valeurs de l'énumération backend (sans accents).
+const CIRCUIT = [
+  { key: "soumis",          label: "Soumis",           next: "etude" },
+  { key: "etude",           label: "Étude",            next: "ventile" },
+  { key: "ventile",         label: "Ventilé",          next: "evacue" },
+  { key: "evacue",          label: "Évacué",           next: "retour" },
+  { key: "retour",          label: "Retour",           next: "controle_tresor" },
+  { key: "controle_tresor", label: "Contrôle Trésor",  next: "cloture" },
+  { key: "cloture",         label: "Clôturé",          next: null },
+];
+
+// Champs obligatoires par statut CIBLE (validations backend réelles)
+const TRANSITION_FIELDS = {
+  etude:           [],
+  ventile:         [{ key: "specialiste", label: "Spécialiste", type: "text", max: 200, req: true, ph: "ex. Dr. Dupont — Cardiologie" }],
+  evacue:          [{ key: "destination", label: "Destination", type: "text", max: 200, req: true, ph: "ex. Paris, France" }],
+  retour:          [],
+  controle_tresor: [{ key: "montant_reel", label: "Montant réel contrôlé (FCFA)", type: "number", req: true, ph: "ex. 4800000" }],
+  cloture:         [],
+};
+
+const STATUT_LABELS = {
+  soumis: "Soumis",
+  etude: "Étude",
+  ventile: "Ventilé",
+  evacue: "Évacué",
+  retour: "Retour",
+  controle_tresor: "Contrôle Trésor",
+  cloture: "Clôturé",
+};
+
+const STATUT_TAG = {
+  soumis: "gray",
+  etude: "blue",
+  ventile: "blue",
+  evacue: "amber",
+  retour: "amber",
+  controle_tresor: "purple",
+  cloture: "green",
+};
+
+const fmtFCFA = n => n == null ? "—" : new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
+const fmtNum  = n => new Intl.NumberFormat("fr-FR").format(Math.round(n || 0));
+const fmtDate = iso => iso ? new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—";
+
+// Échappement HTML pour tout champ texte libre provenant de l'API
+const esc = s => (s == null ? "" : String(s))
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+function statutLabel(s) { return STATUT_LABELS[s] || s; }
+function statutTag(s) { return `<span class="tag ${STATUT_TAG[s] || "gray"}">${statutLabel(s)}</span>`; }
+
+function showErr(msg) {
+  const b = document.getElementById("errBanner");
+  b.textContent = msg;
+  b.style.display = msg ? "block" : "none";
+}
+
+/* ================================================================== */
+/*  Authentification (token depuis localStorage)                      */
+/*  Sur 401 → redirection vers /dashboard (où se trouve le login).    */
+/* ================================================================== */
+function requireToken() {
+  const saved = localStorage.getItem("access_token");
+  if (!saved) {
+    window.location.href = "/dashboard";
+    return false;
+  }
+  TOKEN = saved;
+  document.getElementById("sessionPill").textContent = "Connecté";
+  document.getElementById("sessionPill").className = "pill ok";
+  document.getElementById("refreshBtn").disabled = false;
+  document.getElementById("logoutBtn").style.display = "inline-block";
+  return true;
+}
+
+function logout() {
+  TOKEN = null;
+  localStorage.removeItem("access_token");
+  window.location.href = "/dashboard";
+}
+
+async function apiGet(path) {
+  const res = await fetch(API_BASE + path, {
+    headers: { Authorization: "Bearer " + TOKEN },
+  });
+  if (res.status === 401) {
+    showErr("Session expirée. Redirection vers le tableau de bord…");
+    setTimeout(() => { window.location.href = "/dashboard"; }, 800);
+    throw new Error("401");
+  }
+  if (!res.ok) throw new Error("HTTP " + res.status + " sur " + path);
+  return res.json();
+}
+
+async function apiSend(method, path, body) {
+  const res = await fetch(API_BASE + path, {
+    method: method,
+    headers: {
+      Authorization: "Bearer " + TOKEN,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (res.status === 401) {
+    showErr("Session expirée. Redirection vers le tableau de bord…");
+    setTimeout(() => { window.location.href = "/dashboard"; }, 800);
+    throw new Error("401");
+  }
+  // Tenter d'extraire le message d'erreur métier
+  if (!res.ok) {
+    let detail = "HTTP " + res.status + " sur " + path;
+    try {
+      const j = await res.json();
+      if (j.detail) detail = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
+    } catch (_) {}
+    const e = new Error(detail);
+    e.apiError = true;
+    throw e;
+  }
+  return res.json();
+}
+
+const apiPost = (path, body) => apiSend("POST", path, body);
+const apiPut  = (path, body) => apiSend("PUT", path, body);
+
+/* ================================================================== */
+/*  Chargement global                                                 */
+/* ================================================================== */
+async function loadAll() {
+  if (!TOKEN) return;
+  showErr("");
+  try {
+    await Promise.all([loadCounts(), loadList()]);
+  } catch (e) {
+    if (e.message !== "401") showErr("Erreur lors du chargement : " + e.message);
+  }
+}
+
+/* ---- Compteurs par statut (KPI cliquables) ---- */
+async function loadCounts() {
+  const results = await Promise.all(
+    CIRCUIT.map(s => apiGet("/conseil-sante?skip=0&limit=1&statut=" + s.key))
+  );
+  CIRCUIT.forEach((s, i) => {
+    const el = document.getElementById("cnt-" + s.key);
+    if (el) el.textContent = fmtNum(results[i].total);
+  });
+}
+
+/* ---- Liste paginée filtrée ---- */
+async function loadList() {
+  document.getElementById("listBody").className = "skel";
+  document.getElementById("listBody").textContent = "Chargement…";
+  let qs = "?skip=" + PAGE_SKIP + "&limit=" + PAGE_LIMIT;
+  if (CURRENT_STATUT) qs += "&statut=" + CURRENT_STATUT;
+  const data = await apiGet("/conseil-sante" + qs);
+  LIST_TOTAL = data.total;
+  renderList(data.dossiers || []);
+  renderPager();
+}
+
+function renderList(dossiers) {
+  const body = document.getElementById("listBody");
+  document.getElementById("listCount").textContent =
+    LIST_TOTAL + " dossier" + (LIST_TOTAL > 1 ? "s" : "");
+  if (!dossiers.length) {
+    body.className = "empty";
+    body.innerHTML = "Aucun dossier" + (CURRENT_STATUT ? " au statut « " + statutLabel(CURRENT_STATUT) + " »" : "") + ".";
+    return;
+  }
+  body.className = "";
+  let html = "<table><thead><tr>" +
+    "<th>N° dossier</th><th>Patient</th><th>Motif</th><th>Statut</th>" +
+    "<th>Spécialiste / Destination</th><th class='num'>Montant estimé</th>" +
+    "<th>Soumis le</th></tr></thead><tbody>";
+  dossiers.forEach(d => {
+    const patient = esc((d.nom_patient || "") + " " + (d.prenom_patient || "")).trim() || "—";
+    const specDest = [];
+    if (d.specialiste) specDest.push("🏥 " + esc(d.specialiste));
+    if (d.destination) specDest.push("✈ " + esc(d.destination));
+    html += `<tr onclick="openDetail(${d.id})">` +
+      `<td><strong>${esc(d.numero_dossier)}</strong></td>` +
+      `<td>${patient}${d.matricule_patient ? `<div class='muted-cell' style='font-size:11px'>${esc(d.matricule_patient)}</div>` : ""}</td>` +
+      `<td class='truncate' title='${esc(d.motif)}'>${esc(d.motif)}</td>` +
+      `<td>${statutTag(d.statut)}</td>` +
+      `<td class='muted-cell'>${specDest.join("<br>") || "—"}</td>` +
+      `<td class='num'>${fmtFCFA(d.montant_estime)}</td>` +
+      `<td class='muted-cell'>${fmtDate(d.date_soumission)}</td>` +
+      `</tr>`;
+  });
+  html += "</tbody></table>";
+  body.innerHTML = html;
+}
+
+function renderPager() {
+  const pager = document.getElementById("pager");
+  if (LIST_TOTAL <= PAGE_LIMIT) { pager.style.display = "none"; return; }
+  pager.style.display = "flex";
+  const from = PAGE_SKIP + 1;
+  const to = Math.min(PAGE_SKIP + PAGE_LIMIT, LIST_TOTAL);
+  document.getElementById("pagerInfo").textContent = from + "–" + to + " sur " + LIST_TOTAL;
+  document.getElementById("prevBtn").disabled = PAGE_SKIP === 0;
+  document.getElementById("nextBtn").disabled = to >= LIST_TOTAL;
+}
+
+function changePage(dir) {
+  const newSkip = PAGE_SKIP + dir * PAGE_LIMIT;
+  if (newSkip < 0 || newSkip >= LIST_TOTAL) return;
+  PAGE_SKIP = newSkip;
+  loadList();
+}
+
+/* ---- Filtre par statut ---- */
+function filterBy(statut) {
+  CURRENT_STATUT = statut;
+  PAGE_SKIP = 0;
+  // Synchroniser les boutons segment
+  document.querySelectorAll("#statutSeg button").forEach(b => {
+    b.classList.toggle("active", b.dataset.statut === statut);
+  });
+  // Synchroniser le highlight des KPI
+  document.querySelectorAll("#kpiGrid .kpi").forEach(k => {
+    k.classList.toggle("active", k.dataset.statut === statut);
+  });
+  loadList();
+}
+
+document.getElementById("statutSeg").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-statut]");
+  if (!btn) return;
+  filterBy(btn.dataset.statut);
+});
+
+/* ================================================================== */
+/*  Détail d'un dossier                                               */
+/* ================================================================== */
+async function openDetail(id) {
+  const overlay = document.getElementById("detailOverlay");
+  overlay.classList.remove("hidden");
+  document.getElementById("detMsg").className = "modal-msg";
+  document.getElementById("detTitle").textContent = "Chargement…";
+  document.getElementById("detSub").textContent = "Dossier #" + id;
+  document.getElementById("stepper").innerHTML = "";
+  document.getElementById("detGrid").innerHTML = "";
+  document.getElementById("detTimeline").innerHTML = "";
+  document.getElementById("transFields").innerHTML = "";
+  document.getElementById("detTransitionSec").style.display = "none";
+  try {
+    const d = await apiGet("/conseil-sante/" + id);
+    CURRENT_DETAIL = d;
+    renderDetail(d);
+  } catch (e) {
+    if (e.message !== "401") {
+      document.getElementById("detMsg").className = "modal-msg err";
+      document.getElementById("detMsg").textContent = "Impossible de charger le dossier : " + e.message;
+    }
+  }
+}
+
+function closeDetail() {
+  document.getElementById("detailOverlay").classList.add("hidden");
+  CURRENT_DETAIL = null;
+}
+
+function renderDetail(d) {
+  document.getElementById("detTitle").textContent = d.numero_dossier;
+  document.getElementById("detSub").innerHTML = statutTag(d.statut) +
+    " · Patient : " + esc((d.nom_patient || "") + " " + (d.prenom_patient || ""));
+
+  // Stepper
+  const idx = CIRCUIT.findIndex(s => s.key === d.statut);
+  let sh = "";
+  CIRCUIT.forEach((s, i) => {
+    let cls = "";
+    if (i < idx) cls = "done";
+    else if (i === idx) cls = "active";
+    const mark = i < idx ? "✓" : (i + 1);
+    sh += `<div class="step ${cls}"><div class="dot">${mark}</div><div class="lbl">${s.label}</div></div>`;
+  });
+  document.getElementById("stepper").innerHTML = sh;
+
+  // Grille d'infos
+  const rows = [
+    ["Patient", esc((d.nom_patient || "") + " " + (d.prenom_patient || ""))],
+    ["Matricule", d.matricule_patient ? esc(d.matricule_patient) : "—"],
+    ["Patient enregistré", d.patient_id ? "Oui (patient #" + d.patient_id + ")" : "Non lié"],
+    ["Motif", esc(d.motif)],
+    ["Spécialiste", d.specialiste ? esc(d.specialiste) : "—"],
+    ["Destination", d.destination ? esc(d.destination) : "—"],
+    ["Montant estimé", fmtFCFA(d.montant_estime)],
+    ["Montant réel", fmtFCFA(d.montant_reel)],
+    ["Soumis le", fmtDate(d.date_soumission)],
+    ["Créé le", fmtDate(d.created_at)],
+  ];
+  document.getElementById("detGrid").innerHTML =
+    rows.map(r => `<div class="it"><div class="k">${r[0]}</div><div class="v">${r[1]}</div></div>`).join("");
+
+  // Chronologie
+  const tl = [
+    ["Soumis", d.date_soumission],
+    ["Étude", d.date_etude],
+    ["Ventilation", d.date_ventilation],
+    ["Évacuation", d.date_evacuation],
+    ["Retour", d.date_retour],
+    ["Contrôle Trésor", d.date_controle_tresor],
+    ["Clôture", d.date_cloture],
+  ];
+  document.getElementById("detTimeline").innerHTML = tl.map(t =>
+    `<div class="tl ${t[1] ? "" : "pending"}"><span class="dt">${fmtDate(t[1])}</span><span class="lb">${t[0]}</span></div>`
+  ).join("");
+
+  // Observations
+  const obsSec = document.getElementById("detObsSec");
+  if (d.observations) {
+    obsSec.style.display = "block";
+    document.getElementById("detObs").textContent = d.observations;
+  } else {
+    obsSec.style.display = "none";
+  }
+
+  // Formulaire de transition
+  renderTransition(d);
+}
+
+function renderTransition(d) {
+  const sec = document.getElementById("detTransitionSec");
+  const cur = CIRCUIT.find(s => s.key === d.statut);
+  if (!cur || !cur.next) {
+    sec.style.display = "block";
+    document.getElementById("transTitle").textContent = "Circuit terminé";
+    document.getElementById("transDesc").textContent = "Ce dossier est clôturé. Aucune transition n'est possible.";
+    document.getElementById("transFields").innerHTML = "";
+    document.getElementById("transBtn").style.display = "none";
+    return;
+  }
+  const nextStatut = cur.next;
+  const nextLabel = statutLabel(nextStatut);
+  const fields = TRANSITION_FIELDS[nextStatut] || [];
+  sec.style.display = "block";
+  document.getElementById("transTitle").textContent = "Avancer le dossier";
+  document.getElementById("transDesc").innerHTML =
+    `Transition : <strong>${cur.label}</strong> → <strong>${nextLabel}</strong>` +
+    (fields.length ? " — champ(s) obligatoire(s) marqué(s) d'un *." : " — aucune information supplémentaire requise.");
+  document.getElementById("transBtn").style.display = "inline-block";
+  document.getElementById("transBtn").textContent = `Avancer vers « ${nextLabel} » →`;
+
+  let fh = "";
+  fields.forEach(f => {
+    // Pré-remplir avec la valeur existante si présente
+    let val = "";
+    if (f.key === "specialiste" && d.specialiste) val = esc(d.specialiste);
+    if (f.key === "destination" && d.destination) val = esc(d.destination);
+    if (f.key === "montant_reel" && d.montant_reel != null) val = d.montant_reel;
+    fh += `<div class="field" id="tf-${f.key}">` +
+      `<label for="tv-${f.key}">${f.label} ${f.req ? '<span class="req">*</span>' : ''}</label>` +
+      `<input id="tv-${f.key}" type="${f.type}" ${f.max ? 'maxlength="' + f.max + '"' : ''} ${f.type === 'number' ? 'min="0" step="1"' : ''} placeholder="${f.ph || ''}" value="${val}" />` +
+      `<div class="err-msg">Ce champ est obligatoire pour cette transition.</div>` +
+      `</div>`;
+  });
+  // Observations (toujours optionnel)
+  fh += `<div class="field"><label for="tv-observations">Observations (optionnel)</label>` +
+    `<textarea id="tv-observations" placeholder="Note ajoutée à cette transition…" maxlength="2000"></textarea></div>`;
+  document.getElementById("transFields").innerHTML = fh;
+}
+
+async function submitTransition() {
+  if (!CURRENT_DETAIL) return;
+  const cur = CIRCUIT.find(s => s.key === CURRENT_DETAIL.statut);
+  if (!cur || !cur.next) return;
+  const nextStatut = cur.next;
+  const fields = TRANSITION_FIELDS[nextStatut] || [];
+  const body = { nouveau_statut: nextStatut };
+  let valid = true;
+
+  fields.forEach(f => {
+    const wrap = document.getElementById("tf-" + f.key);
+    const input = document.getElementById("tv-" + f.key);
+    let v = input.value.trim();
+    if (f.req && !v) {
+      wrap.classList.add("error");
+      valid = false;
+    } else {
+      wrap.classList.remove("error");
+      if (f.type === "number") {
+        body[f.key] = v ? Number(v) : null;
+      } else {
+        body[f.key] = v || null;
+      }
+    }
+  });
+
+  const obsEl = document.getElementById("tv-observations");
+  if (obsEl && obsEl.value.trim()) body.observations = obsEl.value.trim();
+
+  if (!valid) return;
+
+  const btn = document.getElementById("transBtn");
+  btn.disabled = true;
+  btn.textContent = "Transition en cours…";
+  const msgEl = document.getElementById("detMsg");
+  msgEl.className = "modal-msg";
+  try {
+    const updated = await apiPut("/conseil-sante/" + CURRENT_DETAIL.id + "/statut", body);
+    CURRENT_DETAIL = updated;
+    renderDetail(updated);
+    msgEl.className = "modal-msg ok";
+    msgEl.textContent = "✓ Dossier avancé vers « " + statutLabel(updated.statut) + " ».";
+    // Rafraîchir la liste et les compteurs en arrière-plan
+    loadCounts();
+    loadList();
+  } catch (e) {
+    if (e.message !== "401") {
+      msgEl.className = "modal-msg err";
+      msgEl.textContent = "Erreur : " + e.message;
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Avancer vers « " + statutLabel(nextStatut) + " » →";
+  }
+}
+
+/* ================================================================== */
+/*  Création d'un dossier (avec recherche patient typeahead)          */
+/* ================================================================== */
+function openCreateModal() {
+  document.getElementById("createOverlay").classList.remove("hidden");
+  resetCreateForm();
+}
+
+function closeCreate() {
+  document.getElementById("createOverlay").classList.add("hidden");
+}
+
+function resetCreateForm() {
+  document.getElementById("createMsg").className = "modal-msg";
+  document.getElementById("patientSearch").value = "";
+  document.getElementById("acResults").classList.remove("show");
+  document.getElementById("patientHint").textContent =
+    "Saisissez pour rechercher un agent enregistré, ou remplissez les champs ci-dessous manuellement.";
+  ["fNom", "fPrenom", "fMatricule", "fMontant", "fMotif", "fSpecialiste", "fDestination", "fObs"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+  document.querySelectorAll("#createOverlay .field").forEach(f => f.classList.remove("error"));
+  SELECTED_PATIENT_ID = null;
+  document.getElementById("createBtn").disabled = false;
+}
+
+// Typeahead patient (debounce)
+let acTimer = null;
+let acIndex = -1;
+document.getElementById("patientSearch").addEventListener("input", e => {
+  clearTimeout(acTimer);
+  const q = e.target.value.trim();
+  SELECTED_PATIENT_ID = null;
+  const box = document.getElementById("acResults");
+  if (q.length < 1) { box.classList.remove("show"); return; }
+  acTimer = setTimeout(() => searchPatients(q), 250);
+});
+
+document.getElementById("patientSearch").addEventListener("keydown", e => {
+  const box = document.getElementById("acResults");
+  const items = box.querySelectorAll(".ac-item");
+  if (!box.classList.contains("show") || !items.length) return;
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    acIndex = Math.min(acIndex + 1, items.length - 1);
+    highlightAc();
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    acIndex = Math.max(acIndex - 1, 0);
+    highlightAc();
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    if (acIndex >= 0) items[acIndex].click();
+  } else if (e.key === "Escape") {
+    box.classList.remove("show");
+  }
+});
+
+function highlightAc() {
+  const items = document.querySelectorAll("#acResults .ac-item");
+  items.forEach((it, i) => it.classList.toggle("active", i === acIndex));
+}
+
+async function searchPatients(q) {
+  const box = document.getElementById("acResults");
+  try {
+    const data = await apiGet("/patients/search?q=" + encodeURIComponent(q) + "&limit=15");
+    const patients = data.patients || [];
+    if (!patients.length) {
+      box.innerHTML = '<div class="ac-empty">Aucun patient trouvé. Remplissez les champs manuellement.</div>';
+      box.classList.add("show");
+      acIndex = -1;
+      return;
+    }
+    box.innerHTML = patients.map((p, i) =>
+      `<div class="ac-item" data-i="${i}">` +
+      `<div class="nm">${esc(p.nom)} ${esc(p.prenom)}</div>` +
+      `<div class="mt">${p.matricule ? "Mat. " + esc(p.matricule) + " · " : ""}${p.telephone ? esc(p.telephone) : "—"}</div>` +
+      `</div>`
+    ).join("");
+    box.classList.add("show");
+    acIndex = -1;
+    box.querySelectorAll(".ac-item").forEach(el => {
+      el.addEventListener("click", () => {
+        const p = patients[Number(el.dataset.i)];
+        selectPatient(p);
+      });
+    });
+  } catch (e) {
+    if (e.message !== "401") {
+      box.innerHTML = '<div class="ac-empty">Erreur de recherche.</div>';
+      box.classList.add("show");
+    }
+  }
+}
+
+function selectPatient(p) {
+  SELECTED_PATIENT_ID = p.id;
+  document.getElementById("patientSearch").value = p.nom + " " + p.prenom + (p.matricule ? " (" + p.matricule + ")" : "");
+  document.getElementById("acResults").classList.remove("show");
+  document.getElementById("patientHint").innerHTML =
+    '✓ Patient sélectionné : <strong>' + esc(p.nom + " " + p.prenom) + '</strong> (patient #' + p.id + '). ' +
+    '<a href="#" onclick="clearPatient();return false;" style="color:var(--brand-2)">Effacer la sélection</a>';
+  document.getElementById("fNom").value = p.nom || "";
+  document.getElementById("fPrenom").value = p.prenom || "";
+  document.getElementById("fMatricule").value = p.matricule || "";
+}
+
+function clearPatient() {
+  SELECTED_PATIENT_ID = null;
+  document.getElementById("patientSearch").value = "";
+  document.getElementById("patientHint").textContent =
+    "Saisissez pour rechercher un agent enregistré, ou remplissez les champs ci-dessous manuellement.";
+}
+
+async function submitCreate() {
+  const msgEl = document.getElementById("createMsg");
+  msgEl.className = "modal-msg";
+  document.querySelectorAll("#createOverlay .field").forEach(f => f.classList.remove("error"));
+
+  const nom = document.getElementById("fNom").value.trim();
+  const prenom = document.getElementById("fPrenom").value.trim();
+  const motif = document.getElementById("fMotif").value.trim();
+  let valid = true;
+  if (!nom) { document.getElementById("fNom").closest(".field").classList.add("error"); valid = false; }
+  if (!prenom) { document.getElementById("fPrenom").closest(".field").classList.add("error"); valid = false; }
+  if (motif.length < 3) { document.getElementById("fMotif").closest(".field").classList.add("error"); valid = false; }
+  if (!valid) return;
+
+  const body = {
+    nom_patient: nom,
+    prenom_patient: prenom,
+    motif: motif,
+  };
+  if (SELECTED_PATIENT_ID) body.patient_id = SELECTED_PATIENT_ID;
+  const matricule = document.getElementById("fMatricule").value.trim();
+  if (matricule) body.matricule_patient = matricule;
+  const specialiste = document.getElementById("fSpecialiste").value.trim();
+  if (specialiste) body.specialiste = specialiste;
+  const destination = document.getElementById("fDestination").value.trim();
+  if (destination) body.destination = destination;
+  const montant = document.getElementById("fMontant").value.trim();
+  if (montant !== "") body.montant_estime = Number(montant);
+  const obs = document.getElementById("fObs").value.trim();
+  if (obs) body.observations = obs;
+
+  const btn = document.getElementById("createBtn");
+  btn.disabled = true;
+  btn.textContent = "Création…";
+  try {
+    const created = await apiPost("/conseil-sante", body);
+    closeCreate();
+    // Ouvrir le détail du dossier créé + rafraîchir les listes
+    await loadCounts();
+    await loadList();
+    openDetail(created.id);
+    showErr("");
+  } catch (e) {
+    if (e.message !== "401") {
+      msgEl.className = "modal-msg err";
+      msgEl.textContent = "Erreur : " + e.message;
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Créer le dossier";
+  }
+}
+
+/* ================================================================== */
+/*  Démarrage                                                         */
+/* ================================================================== */
+if (requireToken()) {
+  loadAll();
+}
+</script>
+</body>
+</html>

@@ -221,3 +221,40 @@ async def dashboard_page():
 async def fiche_patient_page():
     """Sert la page HTML de consultation / édition de fiche patient."""
     return FileResponse(str(STATIC_DIR / "fiche-patient.html"))
+
+
+@app.get("/tarifs", include_in_schema=False)
+async def tarifs_page():
+    """Sert la page HTML des tarifs et règles tarifaires (auth via JWT côté JS)."""
+    return FileResponse(str(STATIC_DIR / "tarifs.html"))
+
+
+@app.get("/caisse", include_in_schema=False)
+async def caisse_page():
+    """Sert la page HTML de la caisse traçable (auth gérée côté JS via JWT)."""
+    return FileResponse(str(STATIC_DIR / "caisse.html"))
+
+
+@app.get("/paiements", include_in_schema=False)
+async def paiements_page():
+    """Sert la page HTML de gestion des paiements (auth via JWT côté JS)."""
+    return FileResponse(str(STATIC_DIR / "paiements.html"))
+
+
+@app.get("/conseil-sante", include_in_schema=False)
+async def conseil_sante_page():
+    """Sert la page HTML du circuit Conseil de santé (auth via JWT côté JS)."""
+    return FileResponse(str(STATIC_DIR / "conseil-sante.html"))
+
+
+@app.get("/admin", include_in_schema=False)
+async def admin_page():
+    """
+    Sert la page HTML de la console d'administration (auth via JWT côté JS).
+
+    La console affiche les informations de session (décodées depuis le JWT),
+    la gestion des rôles (RBAC), les paramètres de sécurité et la navigation
+    vers les autres modules. L'accès est réservé au rôle « admin » (contrôle
+    côté client + RBAC serveur sur les endpoints protégés).
+    """
+    return FileResponse(str(STATIC_DIR / "admin.html"))
